@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { ThemeProvider } from "next-themes";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { VersionFooter } from "@/components/version-footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </nav>
             </header>
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+            <VersionFooter />
             <Toaster />
           </TooltipProvider>
         </ThemeProvider>

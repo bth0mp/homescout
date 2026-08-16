@@ -10,6 +10,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Stamped by CI so the running container can say which build it is.
+ARG GIT_SHA=dev
+ARG BUILD_TIME=unknown
+ENV NEXT_PUBLIC_GIT_SHA=$GIT_SHA NEXT_PUBLIC_BUILD_TIME=$BUILD_TIME
 RUN npm run build
 
 FROM node:22-alpine AS runner

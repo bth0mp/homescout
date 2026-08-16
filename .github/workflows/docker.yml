@@ -34,12 +34,18 @@ jobs:
             type=ref,event=tag
             type=sha,format=short
 
+      - id: stamp
+        run: echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_TIME=${{ steps.stamp.outputs.time }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
