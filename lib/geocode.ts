@@ -1,6 +1,6 @@
 import "server-only";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { geocodeCache } from "@/lib/db/schema";
 import { normalizeAddress } from "@/lib/parse";
 
@@ -111,7 +111,7 @@ export async function geocode(rawAddress: string): Promise<GeocodeResult | null>
   const key = normalizeAddress(rawAddress);
   if (!key) return null;
 
-  const cached = db.select().from(geocodeCache).where(eq(geocodeCache.key, key)).get();
+  const cached = getDb().select().from(geocodeCache).where(eq(geocodeCache.key, key)).get();
   if (cached) {
     const { key: _k, fetchedAt: _f, ...rest } = cached;
     return rest;
@@ -129,6 +129,6 @@ export async function geocode(rawAddress: string): Promise<GeocodeResult | null>
   }
   if (!result) return null;
 
-  db.insert(geocodeCache).values({ key, ...result }).onConflictDoNothing().run();
+  getDb().insert(geocodeCache).values({ key, ...result }).onConflictDoNothing().run();
   return result;
 }

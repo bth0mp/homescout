@@ -1,22 +1,32 @@
-# No ports published on purpose: Pangolin/Newt reaches the container over the
-# shared Docker network. See README for the Newt resource config.
+# Local / source-based deploy. Builds the image from this directory.
+# For Dockhand or any paste-a-compose UI use docker-compose.dockhand.yml instead,
+# which pulls a prebuilt image and needs no build context.
 services:
   homescout:
     build: .
+    image: ghcr.io/bth0mp/homescout:latest
     container_name: homescout
     restart: unless-stopped
-    env_file: .env
+    # Long form so a missing .env is a warning, not a hard abort before build.
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_PATH: /data/homescout.db
     volumes:
       - homescout-data:/data
     networks:
-      - pangolin
+      - proxy
+    expose:
+      - "3000"
 
 volumes:
   homescout-data:
 
 networks:
-  pangolin:
+  proxy:
     external: true
-    name: pangolin
+    # Must match an existing network (`docker network ls`). Compose aborts with
+    # "network ... declared as external, but could not be found" if it does not
+    # exist — it will not create it for you.
+    name: ${PROXY_NETWORK:-pangolin}

@@ -1,0 +1,23 @@
+# Keep the build context small and free of secrets/local state.
+# NOTE: do NOT ignore drizzle/ — the migrations are read at boot and Next's
+# file tracing already emits them into .next/standalone.
+node_modules
+.next
+.git
+.github
+.claude
+data
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+test
+README.md
+CLAUDE.md
+AGENTS.md
+Dockerfile
+docker-compose*.yml

@@ -1,0 +1,38 @@
+# Paste-into-a-UI deploy (Dockhand, Portainer, Komodo, ...).
+# No build context and no .env file: the image is pulled from GHCR and every
+# setting is an environment variable you fill in through the UI.
+#
+# Before this works:
+#   1. The GitHub Actions "Build image" workflow must have run at least once.
+#   2. ghcr.io/bth0mp/homescout must be pullable by the Docker host — either
+#      make the package public, or add a GHCR registry credential in the UI.
+#   3. The external network below must already exist.
+services:
+  homescout:
+    image: ghcr.io/bth0mp/homescout:latest
+    container_name: homescout
+    restart: unless-stopped
+    environment:
+      DATABASE_PATH: /data/homescout.db
+      APP_URL: https://homescout.example.com
+      GEOCODER_CONTACT: homescout (you@example.com)
+      # Set this. Without it the admin UI has no auth of its own.
+      APP_PASSWORD: ""
+      FBI_CDE_API_KEY: ""
+      SOCRATA_APP_TOKEN: ""
+    volumes:
+      - homescout-data:/data
+    networks:
+      - proxy
+    # No ports published: Newt reaches the container on the shared network at
+    # http://homescout:3000. Publishing a host port would bypass the proxy.
+    expose:
+      - "3000"
+
+volumes:
+  homescout-data:
+
+networks:
+  proxy:
+    external: true
+    name: pangolin
