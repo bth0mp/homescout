@@ -70,3 +70,28 @@ export function fundingFee(input: FundingFeeInput): FundingFee {
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/** VA ratings run 0-100 in ten-point steps. */
+export const DISABILITY_RATINGS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
+
+/**
+ * Lowest rating that pays monthly compensation. A 0% rating is service-connected
+ * but not compensable, so it does NOT waive the funding fee.
+ * https://www.va.gov/disability/about-disability-ratings/
+ */
+export const MIN_COMPENSABLE_RATING = 10;
+
+/**
+ * Does a disability rating alone imply the funding fee is waived?
+ *
+ * This is a convenience for the common case, NOT the rule. The exemption is
+ * driven by *receiving compensation*, not by a percentage, so it must stay
+ * independently settable: Purple Heart recipients on active duty and certain
+ * surviving spouses are exempt with no rating at all, and a veteran drawing
+ * retirement pay in lieu of compensation is still exempt. Only the COE settles
+ * it.
+ */
+export function exemptFromRating(ratingPct: number | null): boolean {
+  if (ratingPct == null || !Number.isFinite(ratingPct)) return false;
+  return ratingPct >= MIN_COMPENSABLE_RATING;
+}

@@ -11,7 +11,12 @@ import { Label } from "@/components/ui/label";
 import type { Property, Scenario } from "@/lib/db/schema";
 import { money, parseNumber, pct } from "@/lib/parse";
 import { calculateLoan } from "@/lib/va/amortize";
-import { LAST_VERIFIED as FEE_VERIFIED } from "@/lib/va/funding-fee";
+import {
+  DISABILITY_RATINGS,
+  LAST_VERIFIED as FEE_VERIFIED,
+  MIN_COMPENSABLE_RATING,
+  exemptFromRating,
+} from "@/lib/va/funding-fee";
 import {
   DTI_GUIDELINE,
   REGIONS,
@@ -95,24 +100,33 @@ function Breakdown({
 export function FinancingPanel({
   property,
   scenarios,
+  lastUsed,
 }: {
   property: Property;
   scenarios: Scenario[];
+  /** Most recent scenario from any property, used to seed a first one here. */
+  lastUsed?: Scenario | null;
 }) {
   const [activeId, setActiveId] = useState<number | null>(scenarios[0]?.id ?? null);
   const active = scenarios.find((s) => s.id === activeId);
+  // Rate, term and the VA flags describe the buyer, not the house.
+  const seed = active ?? lastUsed ?? undefined;
   const [pending, startSave] = useTransition();
   const [saved, setSaved] = useState<string | null>(null);
 
   // Loan inputs
   const [name, setName] = useState(active?.name ?? "Base case");
   const [price, setPrice] = useState(String(property.listPrice || ""));
-  const [downPct, setDownPct] = useState(String(active?.downPaymentPct ?? 0));
-  const [rate, setRate] = useState(String(active?.interestRate ?? 6.5));
-  const [term, setTerm] = useState(String(active?.termYears ?? 30));
-  const [firstUse, setFirstUse] = useState(active?.vaFirstUse ?? true);
-  const [exempt, setExempt] = useState(active?.fundingFeeExempt ?? false);
-  const [financeFee, setFinanceFee] = useState(active?.fundingFeeFinanced ?? true);
+  const [downPct, setDownPct] = useState(String(seed?.downPaymentPct ?? 0));
+  const [rate, setRate] = useState(String(seed?.interestRate ?? 6.5));
+  const [term, setTerm] = useState(String(seed?.termYears ?? 30));
+  const [firstUse, setFirstUse] = useState(seed?.vaFirstUse ?? true);
+  const [exempt, setExempt] = useState(seed?.fundingFeeExempt ?? false);
+  // ponytail: not persisted. The rating is a property of the veteran, not of a
+  // scenario, and only the exemption it implies affects the math — and that IS
+  // persisted. No migration for a UI helper.
+  const [rating, setRating] = useState<number | null>(null);
+  const [financeFee, setFinanceFee] = useState(seed?.fundingFeeFinanced ?? true);
   const [tax, setTax] = useState(String(property.propertyTaxAnnual || ""));
   const [ins, setIns] = useState(String(property.insuranceAnnual || ""));
   const [hoa, setHoa] = useState(String(property.hoaMonthly || ""));
@@ -275,12 +289,42 @@ export function FinancingPanel({
             <Field label="HOA / mo" value={hoa} onChange={(e) => setHoa(e.target.value)} placeholder="0" />
           </div>
 
-          <fieldset className="grid gap-2 pt-1">
+          <fieldset className="grid gap-3 pt-1">
             <legend className="mb-1 text-sm font-medium">VA benefit</legend>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={firstUse} onChange={(e) => setFirstUse(e.target.checked)} className="size-4" />
               First use of the VA loan benefit
             </label>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="fin-rating">VA disability rating</Label>
+              <select
+                id="fin-rating"
+                value={rating ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value === "" ? null : Number(e.target.value);
+                  setRating(v);
+                  // Drives the exemption for the common case; the checkbox below
+                  // stays independently settable for the cases a rating misses.
+                  if (v !== null) setExempt(exemptFromRating(v));
+                }}
+                className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+              >
+                <option value="">Not sure / not rated</option>
+                {DISABILITY_RATINGS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}%
+                  </option>
+                ))}
+              </select>
+              {rating === 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  A 0% rating is service-connected but not compensable, so it does not waive the
+                  funding fee.
+                </p>
+              ) : null}
+            </div>
+
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
@@ -292,9 +336,10 @@ export function FinancingPanel({
                 Receiving VA disability compensation (funding fee exempt)
                 <span className="text-muted-foreground mt-0.5 flex items-start gap-1 text-xs">
                   <Info aria-hidden className="mt-0.5 size-3 shrink-0" />
-                  Not tied to any rating percentage. Also covers Purple Heart on active duty and
-                  certain surviving spouses. Eligibility is confirmed by your COE, not by this
-                  calculator.
+                  This box, not the rating, is what waives the fee. {MIN_COMPENSABLE_RATING}% is the
+                  lowest compensable rating, but Purple Heart recipients on active duty and certain
+                  surviving spouses are exempt with no rating at all — tick it directly in those
+                  cases. Eligibility is confirmed by your COE, not by this calculator.
                 </span>
               </span>
             </label>

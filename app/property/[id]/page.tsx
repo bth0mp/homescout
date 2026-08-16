@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { deleteProperty, updateProperty } from "@/app/actions";
 import { FinancingPanel } from "@/components/financing-panel";
 import { OpenInRow } from "@/components/open-in-row";
@@ -36,6 +36,16 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     .from(scenarios)
     .where(eq(scenarios.propertyId, id))
     .all();
+
+  // Seed a first scenario from whatever was used most recently anywhere. Rate,
+  // term and the VA flags are properties of the buyer, not of the house — a
+  // funding-fee-exempt veteran should not re-tick the box for every listing.
+  const lastUsed = getDb()
+    .select()
+    .from(scenarios)
+    .orderBy(desc(scenarios.createdAt))
+    .limit(1)
+    .get();
 
   const updateThis = updateProperty.bind(null, p.id);
   const deleteThis = deleteProperty.bind(null, p.id);
@@ -105,7 +115,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         </TabsContent>
 
         <TabsContent value="financing" className="pt-4">
-          <FinancingPanel property={p} scenarios={propertyScenarios} />
+          <FinancingPanel property={p} scenarios={propertyScenarios} lastUsed={lastUsed ?? null} />
         </TabsContent>
         <TabsContent value="crime" className="pt-4">
           <p className="text-muted-foreground text-sm">Crime lookup lands in milestone 5.</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fundingFee, fundingFeeRate } from "@/lib/va/funding-fee";
+import { exemptFromRating, fundingFee, fundingFeeRate } from "@/lib/va/funding-fee";
 
 const P = 400_000;
 
@@ -40,6 +40,25 @@ describe("tier boundaries are exact", () => {
     // A cent under the boundary stays in the more expensive tier.
     expect(fundingFeeRate({ price: 100_000, downPayment: 4_999.99, firstUse: true })).toBe(2.15);
     expect(fundingFeeRate({ price: 100_000, downPayment: 9_999.99, firstUse: true })).toBe(1.5);
+  });
+});
+
+describe("exemptFromRating", () => {
+  it("waives from 10% up — the lowest compensable rating", () => {
+    expect(exemptFromRating(10)).toBe(true);
+    expect(exemptFromRating(30)).toBe(true);
+    expect(exemptFromRating(100)).toBe(true);
+  });
+
+  it("does NOT waive at 0% — service-connected but not compensable", () => {
+    expect(exemptFromRating(0)).toBe(false);
+  });
+
+  it("says nothing when there is no rating", () => {
+    // Purple Heart on active duty and surviving spouses are exempt with no
+    // rating at all, so this helper must not be the only path to the exemption.
+    expect(exemptFromRating(null)).toBe(false);
+    expect(exemptFromRating(Number.NaN)).toBe(false);
   });
 });
 
