@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { deleteProperty, updateProperty } from "@/app/actions";
+import { CrimePanel } from "@/components/crime-panel";
 import { FinancingPanel } from "@/components/financing-panel";
 import { OpenInRow } from "@/components/open-in-row";
 import { PropertyForm } from "@/components/property-form";
@@ -72,7 +73,9 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           <TabsTrigger value="financing">Financing</TabsTrigger>
           <TabsTrigger value="crime">Crime</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          {/* Labelled "Edit" too: the edit form lives here, and nobody looks
+              for it under a tab called "Notes". */}
+          <TabsTrigger value="notes">Edit &amp; notes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 pt-4">
@@ -136,7 +139,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           <FinancingPanel property={p} scenarios={propertyScenarios} lastUsed={lastUsed ?? null} />
         </TabsContent>
         <TabsContent value="crime" className="pt-4">
-          <p className="text-muted-foreground text-sm">Crime lookup lands in milestone 5.</p>
+          <CrimePanel propertyId={p.id} geocoded={p.lat != null && p.lng != null} />
         </TabsContent>
         <TabsContent value="links" className="pt-4">
           <Card>

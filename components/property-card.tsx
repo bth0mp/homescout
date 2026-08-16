@@ -16,11 +16,20 @@ export function PropertyCard({ property: p }: { property: Property }) {
   const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
 
   return (
-    <Card className="transition-colors hover:border-foreground/20">
+    // `relative` belongs HERE, not on the link: the stretched overlay is
+    // positioned against its nearest positioned ancestor, so putting it on the
+    // link made only the nickname text clickable.
+    <Card className="focus-within:ring-ring relative transition-colors hover:border-foreground/20 focus-within:ring-2">
       <CardHeader className="gap-1">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">
-            <Link href={`/property/${p.id}`} className="after:absolute after:inset-0 relative">
+            <Link
+              href={`/property/${p.id}`}
+              // after:content-[''] is required — Tailwind's after:absolute does
+              // not generate a content property, so without it the pseudo-element
+              // has no box and the overlay silently does not exist.
+              className="outline-none after:absolute after:inset-0 after:content-['']"
+            >
               {p.nickname}
             </Link>
           </CardTitle>
