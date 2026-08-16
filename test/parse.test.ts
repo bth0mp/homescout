@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { money, parseNumber, parseNumberOr0, pct } from "@/lib/parse";
+import { money, normalizeAddress, parseNumber, parseNumberOr0, pct } from "@/lib/parse";
 
 describe("parseNumber", () => {
   it("accepts the ways a human types money and percents", () => {
@@ -21,6 +21,19 @@ describe("parseNumber", () => {
     expect(parseNumber(undefined)).toBeNull();
     expect(parseNumber(Number.NaN)).toBeNull();
     expect(parseNumberOr0("")).toBe(0);
+  });
+});
+
+describe("normalizeAddress", () => {
+  it("collapses punctuation, case and whitespace to one cache key", () => {
+    const key = "123 main st washington dc 20500";
+    expect(normalizeAddress("123 Main St., Washington, DC 20500")).toBe(key);
+    expect(normalizeAddress("  123   main st washington dc 20500 ")).toBe(key);
+    expect(normalizeAddress("123 Main St, Washington, DC, 20500")).toBe(key);
+  });
+
+  it("keeps genuinely different addresses apart", () => {
+    expect(normalizeAddress("123 Main St")).not.toBe(normalizeAddress("124 Main St"));
   });
 });
 

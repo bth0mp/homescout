@@ -32,3 +32,15 @@ export function pct(n: number, digits = 2): string {
   if (!Number.isFinite(n)) return "—";
   return `${n.toFixed(digits)}%`;
 }
+
+/**
+ * Cache key for geocoding. Collapses case, punctuation and whitespace so
+ * "123 Main St." and "123 main st" resolve to the same cached row.
+ */
+export function normalizeAddress(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[.,#]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
