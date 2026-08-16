@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { deleteProperty, updateProperty } from "@/app/actions";
+import { OpenInRow } from "@/components/open-in-row";
 import { PropertyForm } from "@/components/property-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,23 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           <p className="text-muted-foreground text-sm">Crime lookup lands in milestone 5.</p>
         </TabsContent>
         <TabsContent value="links" className="pt-4">
-          <p className="text-muted-foreground text-sm">Listing deep links land in milestone 2.</p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Open in…</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OpenInRow
+                target={{
+                  street: p.street,
+                  city: p.city,
+                  state: p.state,
+                  zip: p.zip,
+                  lat: p.lat,
+                  lng: p.lng,
+                }}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="notes" className="space-y-6 pt-4">
