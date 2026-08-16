@@ -62,6 +62,45 @@ if pct status "$CTID" >/dev/null 2>&1; then
   die "CTID $CTID already exists. Remove it (pct stop $CTID && pct destroy $CTID) or pick another: CTID=151 bash $0"
 fi
 
+# Check the image is actually pullable BEFORE doing anything expensive. Docker
+# only reports a bare "unauthorized" at the very end, after the template
+# download, the LXC build and the Docker install — ~5 minutes of wasted work and
+# an orphaned container.
+case "$IMAGE" in
+  ghcr.io/*)
+    _img_notag="${IMAGE%:*}"
+    GHCR_REPO="${_img_notag#ghcr.io/}"
+    GHCR_TAG="${IMAGE##*:}"
+    [ "$GHCR_TAG" = "$IMAGE" ] && GHCR_TAG="latest"
+
+    say "Checking $IMAGE is pullable"
+    if [ -n "$GHCR_TOKEN" ]; then
+      _tok="$(curl -fsS -u "${GHCR_USER}:${GHCR_TOKEN}" \
+        "https://ghcr.io/token?scope=repository:${GHCR_REPO}:pull&service=ghcr.io" 2>/dev/null \
+        | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' || true)"
+    else
+      _tok="$(curl -fsS \
+        "https://ghcr.io/token?scope=repository:${GHCR_REPO}:pull&service=ghcr.io" 2>/dev/null \
+        | sed -n 's/.*"token":"\([^"]*\)".*/\1/p' || true)"
+    fi
+    _code="$(curl -s -o /dev/null -w '%{http_code}' \
+      -H "Authorization: Bearer ${_tok:-none}" \
+      -H 'Accept: application/vnd.oci.image.index.v1+json' \
+      -H 'Accept: application/vnd.docker.distribution.manifest.list.v2+json' \
+      -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+      "https://ghcr.io/v2/${GHCR_REPO}/manifests/${GHCR_TAG}" || true)"
+
+    if [ "$_code" != "200" ]; then
+      die "cannot pull ${IMAGE} (registry returned ${_code:-no-response}).
+  The GHCR package is private. Either:
+    - make it public: https://github.com/users/${GHCR_REPO%%/*}/packages/container/${GHCR_REPO##*/}/settings
+    - or re-run with a PAT that has read:packages:
+        GHCR_TOKEN='ghp_...' APP_PASSWORD='...' bash $0
+  Nothing has been created yet, so there is nothing to clean up."
+    fi
+    ;;
+esac
+
 # Validate storage BEFORE the ~150MB template download. pct only surfaces this
 # after all the expensive work, and its message never names a working
 # alternative — on a ZFS-root node there is no local-lvm at all.
