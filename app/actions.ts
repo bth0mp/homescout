@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { properties } from "@/lib/db/schema";
+import { properties, scenarios } from "@/lib/db/schema";
 import { geocode } from "@/lib/geocode";
 import { parseListingUrl } from "@/lib/listing-parse";
 import { titleCase } from "@/lib/parse";
@@ -126,6 +127,48 @@ export async function updateProperty(id: number, _prev: ActionState, fd: FormDat
   revalidatePath("/");
   revalidatePath(`/property/${id}`);
   return null;
+}
+
+export type ScenarioInput = {
+  id?: number;
+  propertyId: number;
+  name: string;
+  downPaymentPct: number;
+  interestRate: number;
+  termYears: number;
+  fundingFeeFinanced: boolean;
+  fundingFeeExempt: boolean;
+  vaFirstUse: boolean;
+};
+
+const scenarioSchema = z.object({
+  id: z.number().int().positive().optional(),
+  propertyId: z.number().int().positive(),
+  name: z.string().trim().min(1).max(80),
+  downPaymentPct: z.number().min(0).max(100),
+  interestRate: z.number().min(0).max(30),
+  termYears: z.number().int().min(1).max(50),
+  fundingFeeFinanced: z.boolean(),
+  fundingFeeExempt: z.boolean(),
+  vaFirstUse: z.boolean(),
+});
+
+export async function saveScenario(input: ScenarioInput): Promise<{ id: number } | { error: string }> {
+  const parsed = scenarioSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid scenario" };
+  const { id, ...values } = parsed.data;
+
+  const row = id
+    ? getDb().update(scenarios).set(values).where(eq(scenarios.id, id)).returning({ id: scenarios.id }).get()
+    : getDb().insert(scenarios).values(values).returning({ id: scenarios.id }).get();
+
+  revalidatePath(`/property/${values.propertyId}`);
+  return { id: row.id };
+}
+
+export async function deleteScenario(id: number, propertyId: number) {
+  getDb().delete(scenarios).where(eq(scenarios.id, id)).run();
+  revalidatePath(`/property/${propertyId}`);
 }
 
 export async function deleteProperty(id: number) {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { toCsv } from "@/lib/csv";
 import { money, normalizeAddress, parseNumber, parseNumberOr0, pct, titleCase } from "@/lib/parse";
 
 describe("parseNumber", () => {
@@ -34,6 +35,26 @@ describe("normalizeAddress", () => {
 
   it("keeps genuinely different addresses apart", () => {
     expect(normalizeAddress("123 Main St")).not.toBe(normalizeAddress("124 Main St"));
+  });
+});
+
+describe("toCsv", () => {
+  it("quotes only the fields that need it", () => {
+    const csv = toCsv(
+      ["month", "note", "amount"],
+      [
+        [1, "plain", 1000],
+        [2, "has, comma", 2000],
+        [3, 'has "quotes"', 3000],
+        [4, "has\nnewline", 4000],
+      ],
+    );
+    const lines = csv.split("\r\n");
+    expect(lines[0]).toBe("month,note,amount");
+    expect(lines[1]).toBe("1,plain,1000");
+    expect(lines[2]).toBe('2,"has, comma",2000');
+    expect(lines[3]).toBe('3,"has ""quotes""",3000');
+    expect(csv).toContain('"has\nnewline"');
   });
 });
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { deleteProperty, updateProperty } from "@/app/actions";
+import { FinancingPanel } from "@/components/financing-panel";
 import { OpenInRow } from "@/components/open-in-row";
 import { PropertyForm } from "@/components/property-form";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getDb } from "@/lib/db";
-import { properties } from "@/lib/db/schema";
+import { properties, scenarios } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,12 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
 
   const p = getDb().select().from(properties).where(eq(properties.id, id)).get();
   if (!p) notFound();
+
+  const propertyScenarios = getDb()
+    .select()
+    .from(scenarios)
+    .where(eq(scenarios.propertyId, id))
+    .all();
 
   const updateThis = updateProperty.bind(null, p.id);
   const deleteThis = deleteProperty.bind(null, p.id);
@@ -98,7 +105,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         </TabsContent>
 
         <TabsContent value="financing" className="pt-4">
-          <p className="text-muted-foreground text-sm">VA calculator lands in milestone 3.</p>
+          <FinancingPanel property={p} scenarios={propertyScenarios} />
         </TabsContent>
         <TabsContent value="crime" className="pt-4">
           <p className="text-muted-foreground text-sm">Crime lookup lands in milestone 5.</p>
