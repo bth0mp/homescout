@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Info } from "lucide-react";
 import { deleteScenario, saveScenario } from "@/app/actions";
 import { AmortizationTable } from "@/components/amortization-table";
+import { ClosingCosts } from "@/components/closing-costs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -426,6 +427,22 @@ export function FinancingPanel({
             />
           </CardContent>
         </Card>
+      </div>
+
+      {/* ---------- closing costs ---------- */}
+      <div className="lg:col-span-2">
+        <h3 className="mb-3 text-sm font-medium">Closing costs</h3>
+        <ClosingCosts
+          price={priceN}
+          loanAmount={loan.loanAmount}
+          downPayment={downPayment}
+          fundingFeeDueAtClosing={loan.feeDueAtClosing}
+          interestRate={num(rate, 0)}
+          insuranceAnnual={num(ins)}
+          propertyTaxAnnual={num(tax)}
+          state={property.state}
+          nickname={property.nickname}
+        />
       </div>
 
       {/* ---------- residual income ---------- */}

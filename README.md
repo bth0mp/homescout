@@ -250,7 +250,8 @@ constant. Check them against the source before trusting a number:
 | `lib/listing-parse.ts` | Inbound listing-URL shapes (paste-a-link) |
 | `lib/va/funding-fee.ts` | VA funding fee tiers *(milestone 3)* |
 | `lib/va/residual-income.ts` | VA residual income table *(milestone 3)* |
-| `lib/closing/defaults.ts` | Closing cost defaults, transfer tax *(milestone 4)* |
+| `lib/closing/defaults.ts` | Closing cost defaults, transfer tax by state |
+| `lib/closing/non-allowable.ts` | VA fees the veteran may not be charged |
 
 ---
 
@@ -261,8 +262,10 @@ constant. Check them against the source before trusting a number:
 | 0 — Scaffold, theme, SQLite, health check, Docker | done |
 | 1 — Properties + geocoding | done |
 | 2 — Listing deep links | done |
-| 3 — VA loan calculator | next |
-| 4 — Closing cost estimator | pending |
-| 5 — Area crime lookup | pending |
+| 3 — VA loan calculator | done |
+| 4 — Closing cost estimator | done |
+| Maps (board + per property) | done |
+| 5 — Area crime lookup | next |
 | 6 — Compare view | pending |
 | 7 — Sharing | pending |
+| Auto-update button | after the build is complete |
