@@ -1,0 +1,22 @@
+# No ports published on purpose: Pangolin/Newt reaches the container over the
+# shared Docker network. See README for the Newt resource config.
+services:
+  homescout:
+    build: .
+    container_name: homescout
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_PATH: /data/homescout.db
+    volumes:
+      - homescout-data:/data
+    networks:
+      - pangolin
+
+volumes:
+  homescout-data:
+
+networks:
+  pangolin:
+    external: true
+    name: pangolin
