@@ -25,8 +25,8 @@ RAM_MB="${RAM_MB:-1024}"
 
 IMAGE="${IMAGE:-ghcr.io/bth0mp/homescout:latest}"
 APP_PORT="${APP_PORT:-3000}"
-# How often Watchtower checks GHCR for a new image. 21600 = 6 hours.
-UPDATE_INTERVAL_SECONDS="${UPDATE_INTERVAL_SECONDS:-21600}"
+# How often the update timer checks GHCR for a new image, in hours.
+UPDATE_INTERVAL_HOURS="${UPDATE_INTERVAL_HOURS:-6}"
 
 # App config. APP_PASSWORD is required: without it the admin UI has no auth of
 # its own and every server action becomes an unauthenticated write endpoint.
@@ -246,24 +246,54 @@ services:
       retries: 3
       start_period: 15s
 
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
-
-  # ponytail: Watchtower instead of an in-app update button. An update button
-  # inside the web container needs the Docker socket mounted into it, which
-  # turns any auth bypass in a proxy-exposed app into host takeover. This polls
-  # GHCR on a schedule and only touches containers carrying the label above.
-  watchtower:
-    image: containrrr/watchtower:latest
-    container_name: homescout-watchtower
-    restart: unless-stopped
-    command: --label-enable --cleanup --interval ${UPDATE_INTERVAL_SECONDS}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   homescout-data:
 COMPOSE
+
+# ponytail: a systemd timer, not Watchtower and not an in-app button.
+#
+# Watchtower was the obvious choice and is the wrong one here:
+# containrrr/watchtower's last image push was 2023-11-11 and the project is
+# unmaintained, so its bundled Docker client speaks API 1.25 while a current
+# daemon requires >= 1.40 — it crash-loops on a modern host. A timer needs no
+# third-party image, hands the Docker socket to nobody, and uses tooling that is
+# already installed.
+#
+# An in-app update button is still deliberately absent: it would need the socket
+# mounted into the web container, turning any auth bypass into root on the LXC.
+say "Installing the update timer (every ${UPDATE_INTERVAL_HOURS}h)"
+pct exec "$CTID" -- bash -c "cat > /etc/systemd/system/homescout-update.service" <<'UNIT'
+[Unit]
+Description=Pull and restart HomeScout when a new image is published
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/homescout
+ExecStart=/usr/bin/docker compose pull --quiet
+ExecStart=/usr/bin/docker compose up -d
+# Dedicated container, so pruning dangling images here is safe.
+ExecStart=/usr/bin/docker image prune -f
+UNIT
+
+pct exec "$CTID" -- bash -c "cat > /etc/systemd/system/homescout-update.timer" <<UNIT
+[Unit]
+Description=Check for HomeScout updates
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=${UPDATE_INTERVAL_HOURS}h
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+pct exec "$CTID" -- systemctl daemon-reload
+pct exec "$CTID" -- systemctl enable --now homescout-update.timer
 
 say "Pulling and starting"
 pct exec "$CTID" -- docker compose -f /opt/homescout/docker-compose.yml up -d
@@ -308,9 +338,13 @@ cat <<EOF
   Point Newt at:  http://${IP:-<ct-ip>}:${APP_PORT}
   Public routes:  /api/health and /s/*      Protected: everything else
 
-  Update to a new image later:
-    pct exec $CTID -- docker compose -f /opt/homescout/docker-compose.yml pull
-    pct exec $CTID -- docker compose -f /opt/homescout/docker-compose.yml up -d
+  Updates run automatically every ${UPDATE_INTERVAL_HOURS}h. To watch or force one:
+    pct exec $CTID -- systemctl list-timers homescout-update.timer
+    pct exec $CTID -- journalctl -u homescout-update.service -f
+    pct exec $CTID -- systemctl start homescout-update.service
+
+  Which build is running (reads the password from the container's own .env):
+    pct exec $CTID -- bash -c 'set -a; . /opt/homescout/.env; curl -s -u any:"\$APP_PASSWORD" http://127.0.0.1:3000/api/version'
 
   Back up the database (WAL mode — do not copy the .db file alone while running):
     pct exec $CTID -- docker exec homescout node -e "new (require('better-sqlite3'))('/data/homescout.db').backup('/data/backup.db').then(()=>process.exit(0))"

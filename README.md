@@ -207,22 +207,38 @@ than guessing.
 
 ## Staying up to date
 
-The stack deployed by `deploy/proxmox-lxc.sh` includes **Watchtower**, scoped by
-label to the HomeScout container only. It polls GHCR every 6 hours
-(`UPDATE_INTERVAL_SECONDS`) and restarts the container when CI publishes a new
-image. Push to `master` → Actions builds and smoke-tests → the node picks it up.
-
-To pull immediately instead of waiting:
+`deploy/proxmox-lxc.sh` installs a **systemd timer** in the container that runs
+`docker compose pull && up -d` every 6 hours (`UPDATE_INTERVAL_HOURS`). Push to
+`master` → Actions builds and smoke-tests → the node picks it up.
 
 ```bash
-pct exec 150 -- docker compose -f /opt/homescout/docker-compose.yml pull
-pct exec 150 -- docker compose -f /opt/homescout/docker-compose.yml up -d
+pct exec 150 -- systemctl list-timers homescout-update.timer
+pct exec 150 -- journalctl -u homescout-update.service -f
+pct exec 150 -- systemctl start homescout-update.service   # run one now
 ```
 
-There is deliberately **no update button inside the app**. It would require
-mounting the Docker socket into the web container, which turns any auth bypass
-in an internet-facing app into root on the LXC. Watchtower holds the socket
-instead, and it has no HTTP surface.
+Every page footer shows the running build's short SHA and whether `master` has
+moved past it; `/api/version` returns the same as JSON. To read it without
+typing your password:
+
+```bash
+pct exec 150 -- bash -c 'set -a; . /opt/homescout/.env; curl -s -u any:"$APP_PASSWORD" http://127.0.0.1:3000/api/version'
+```
+
+### Why not Watchtower
+
+It was the obvious choice and it does not work here. `containrrr/watchtower`'s
+last image push was **2023-11-11** and the project is unmaintained, so its
+bundled Docker client speaks API 1.25 while a current daemon requires ≥ 1.40 —
+it crash-loops on any modern host with `client version 1.25 is too old`. The
+timer needs no third-party image and hands the Docker socket to nobody.
+
+### Why no update button in the app
+
+A button would need the Docker socket mounted into the web container, which
+turns any auth bypass in an internet-facing app into root on the LXC. The timer
+holds no HTTP surface at all. If you want a button, the safe route is a
+restricted socket-proxy — not a socket mount.
 
 ## Data sources, licensing and attribution
 
