@@ -42,3 +42,55 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # A green build does not mean the thing boots. This proves the standalone
+      # server starts, finds its migrations, creates the schema on an empty
+      # volume, serves static assets, and honours APP_PASSWORD.
+      - name: Smoke test the image
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:latest
+        run: |
+          set -euo pipefail
+          docker run -d --name smoke \
+            -e APP_PASSWORD=ci-secret \
+            -e DATABASE_PATH=/data/homescout.db \
+            -p 3000:3000 "$IMAGE"
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then break; fi
+            if [ "$i" = 30 ]; then
+              echo "::error::container never became healthy"
+              docker logs smoke
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "--- health (must be public, db up) ---"
+          health=$(curl -fsS http://127.0.0.1:3000/api/health)
+          echo "$health"
+          echo "$health" | grep -q '"db":"up"'
+
+          echo "--- schema actually migrated on an empty volume ---"
+          docker exec smoke node -e "
+            const D=require('better-sqlite3');
+            const t=new D('/data/homescout.db').prepare(
+              \"select name from sqlite_master where type='table' order by name\"
+            ).all().map(r=>r.name);
+            console.log(t.join(','));
+            for (const need of ['properties','scenarios','share_links','geocode_cache','crime_cache'])
+              if (!t.includes(need)) { console.error('missing table: '+need); process.exit(1); }
+          "
+
+          echo "--- auth gate ---"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)" = 401 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -u any:ci-secret http://127.0.0.1:3000/)" = 200 ]
+
+          echo "--- static assets served (hydration depends on this) ---"
+          css=$(curl -s -u any:ci-secret http://127.0.0.1:3000/ \
+                | grep -o '/_next/static/[^"]*\.css' | head -1)
+          test -n "$css"
+          curl -fsS -o /dev/null -u any:ci-secret "http://127.0.0.1:3000$css"
+          echo "ok: $css"
+
+          docker rm -f smoke >/dev/null
