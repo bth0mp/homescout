@@ -184,6 +184,46 @@ docker exec homescout node -e "const D=require('better-sqlite3');new D('/data/ho
 
 ---
 
+## Adding a property from a listing link
+
+Paste a listing URL into the field at the top of the Add-property form and the
+address fills itself in. Supported: **Redfin, Zillow, Realtor.com, Trulia,
+Homes.com** — property pages, not search pages.
+
+**This still does not scrape.** These sites encode the address in the URL path
+(`/WA/Wenatchee/908-N-Elliott-Ave-98801/home/75131851`), so it is parsed as a
+string. The listing page is never fetched. The parsed address is then handed to
+the geocoder for coordinates and FIPS codes.
+
+One subtlety worth knowing: the Census geocoder returns a USPS-reduced street —
+`908 N Elliott Ave` comes back as `908 ELLIOTT AVE`, directional dropped. That
+string is what the outbound listing links are built from, so where the URL gives
+unambiguous fields (Redfin, Realtor.com) the URL wins for the street and the
+geocoder is used only for coordinates. Elsewhere the geocoder's answer is
+title-cased for display.
+
+If a link cannot be read, it says so and asks you to type the address rather
+than guessing.
+
+## Staying up to date
+
+The stack deployed by `deploy/proxmox-lxc.sh` includes **Watchtower**, scoped by
+label to the HomeScout container only. It polls GHCR every 6 hours
+(`UPDATE_INTERVAL_SECONDS`) and restarts the container when CI publishes a new
+image. Push to `master` → Actions builds and smoke-tests → the node picks it up.
+
+To pull immediately instead of waiting:
+
+```bash
+pct exec 150 -- docker compose -f /opt/homescout/docker-compose.yml pull
+pct exec 150 -- docker compose -f /opt/homescout/docker-compose.yml up -d
+```
+
+There is deliberately **no update button inside the app**. It would require
+mounting the Docker socket into the web container, which turns any auth bypass
+in an internet-facing app into root on the LXC. Watchtower holds the socket
+instead, and it has no HTTP surface.
+
 ## Data sources, licensing and attribution
 
 | Source | Used for | Terms |
@@ -206,7 +246,8 @@ constant. Check them against the source before trusting a number:
 
 | File | Contents |
 | --- | --- |
-| `lib/listing-links.ts` | Listing-site URL patterns |
+| `lib/listing-links.ts` | Outbound listing-site URL patterns |
+| `lib/listing-parse.ts` | Inbound listing-URL shapes (paste-a-link) |
 | `lib/va/funding-fee.ts` | VA funding fee tiers *(milestone 3)* |
 | `lib/va/residual-income.ts` | VA residual income table *(milestone 3)* |
 | `lib/closing/defaults.ts` | Closing cost defaults, transfer tax *(milestone 4)* |

@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { properties } from "@/lib/db/schema";
 import { geocode } from "@/lib/geocode";
+import { parseListingUrl } from "@/lib/listing-parse";
+import { titleCase } from "@/lib/parse";
 import { propertyFromForm } from "@/lib/zod";
 
 export type ActionState = { error?: string } | null;
@@ -30,6 +32,62 @@ async function geocodeInto(input: {
     fipsState: hit.fipsState,
     fipsCounty: hit.fipsCounty,
     fipsTract: hit.fipsTract,
+  };
+}
+
+export type LookupResult =
+  | {
+      ok: true;
+      provider: string;
+      street: string;
+      city: string;
+      state: string;
+      zip: string;
+      geocoded: boolean;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Paste a listing URL, get back an address. The URL is parsed locally — we
+ * never fetch the listing page — and then handed to the geocoder, which is the
+ * authority on how the address actually splits.
+ */
+export async function lookupListing(url: string): Promise<LookupResult> {
+  const parsed = parseListingUrl(url);
+  if (!parsed) {
+    return {
+      ok: false,
+      error:
+        "Could not read an address from that link. Supported: Redfin, Zillow, Realtor.com, Trulia, Homes.com property pages (not search pages).",
+    };
+  }
+
+  const hit = await geocode(parsed.addressLine);
+  if (!hit) {
+    // Parsed but not geocodable: hand back the raw line so the user can correct
+    // it rather than losing what we did work out.
+    return {
+      ok: true,
+      provider: parsed.provider,
+      street: parsed.addressLine,
+      city: "",
+      state: "",
+      zip: "",
+      geocoded: false,
+    };
+  }
+
+  // The listing URL wins for the street when it gave us clean fields: Census
+  // returns an uppercased USPS-reduced form that drops directionals, and that
+  // string is what the outbound listing links are built from.
+  return {
+    ok: true,
+    provider: parsed.provider,
+    street: parsed.parts?.street ?? titleCase(hit.street ?? parsed.addressLine),
+    city: parsed.parts?.city ?? titleCase(hit.city ?? ""),
+    state: parsed.parts?.state ?? (hit.state ?? "").toUpperCase(),
+    zip: parsed.parts?.zip || (hit.zip ?? ""),
+    geocoded: true,
   };
 }
 

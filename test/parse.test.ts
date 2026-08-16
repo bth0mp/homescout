@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { money, normalizeAddress, parseNumber, parseNumberOr0, pct } from "@/lib/parse";
+import { money, normalizeAddress, parseNumber, parseNumberOr0, pct, titleCase } from "@/lib/parse";
 
 describe("parseNumber", () => {
   it("accepts the ways a human types money and percents", () => {
@@ -34,6 +34,16 @@ describe("normalizeAddress", () => {
 
   it("keeps genuinely different addresses apart", () => {
     expect(normalizeAddress("123 Main St")).not.toBe(normalizeAddress("124 Main St"));
+  });
+});
+
+describe("titleCase", () => {
+  it("tames the Census geocoder's shouting without mangling directionals", () => {
+    expect(titleCase("908 ELLIOTT AVE")).toBe("908 Elliott Ave");
+    expect(titleCase("WENATCHEE")).toBe("Wenatchee");
+    expect(titleCase("1600 PENNSYLVANIA AVE NW")).toBe("1600 Pennsylvania Ave NW");
+    expect(titleCase("123 N MAIN ST")).toBe("123 N Main St");
+    expect(titleCase("")).toBe("");
   });
 });
 

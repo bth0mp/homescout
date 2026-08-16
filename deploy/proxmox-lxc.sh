@@ -25,6 +25,8 @@ RAM_MB="${RAM_MB:-1024}"
 
 IMAGE="${IMAGE:-ghcr.io/bth0mp/homescout:latest}"
 APP_PORT="${APP_PORT:-3000}"
+# How often Watchtower checks GHCR for a new image. 21600 = 6 hours.
+UPDATE_INTERVAL_SECONDS="${UPDATE_INTERVAL_SECONDS:-21600}"
 
 # App config. APP_PASSWORD is required: without it the admin UI has no auth of
 # its own and every server action becomes an unauthenticated write endpoint.
@@ -243,6 +245,21 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # ponytail: Watchtower instead of an in-app update button. An update button
+  # inside the web container needs the Docker socket mounted into it, which
+  # turns any auth bypass in a proxy-exposed app into host takeover. This polls
+  # GHCR on a schedule and only touches containers carrying the label above.
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: homescout-watchtower
+    restart: unless-stopped
+    command: --label-enable --cleanup --interval ${UPDATE_INTERVAL_SECONDS}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   homescout-data:
