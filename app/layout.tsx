@@ -32,6 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   Home<span className="text-muted-foreground">Scout</span>
                 </Link>
                 <Link
+                  href="/map"
+                  className="text-muted-foreground hover:text-foreground rounded-md px-2 py-1 text-sm"
+                >
+                  Map
+                </Link>
+                <Link
                   href="/compare"
                   className="text-muted-foreground hover:text-foreground rounded-md px-2 py-1 text-sm"
                 >

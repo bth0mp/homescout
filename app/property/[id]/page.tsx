@@ -5,6 +5,7 @@ import { deleteProperty, updateProperty } from "@/app/actions";
 import { FinancingPanel } from "@/components/financing-panel";
 import { OpenInRow } from "@/components/open-in-row";
 import { PropertyForm } from "@/components/property-form";
+import { PropertyMap } from "@/components/property-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,6 +90,22 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
             </CardHeader>
             <CardContent className="text-sm">
               {p.lat != null && p.lng != null ? (
+                <div className="space-y-3">
+                  <PropertyMap
+                    pins={[
+                      {
+                        id: p.id,
+                        lat: p.lat,
+                        lng: p.lng,
+                        label: p.nickname,
+                        sublabel: addressLine,
+                        price: p.listPrice || undefined,
+                        status: p.status,
+                      },
+                    ]}
+                    height="18rem"
+                    zoom={15}
+                  />
                 <dl className="grid gap-2 sm:grid-cols-2">
                   <div>
                     <dt className="text-muted-foreground text-xs">Coordinates</dt>
@@ -105,6 +122,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                     </dd>
                   </div>
                 </dl>
+                </div>
               ) : (
                 <p className="text-muted-foreground">
                   Not geocoded. Add a street, city and state, then save.
