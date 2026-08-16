@@ -120,6 +120,39 @@ Paste the contents of `docker-compose.dockhand.yml`, fill in the environment
 values in the UI (especially `APP_PASSWORD`, `APP_URL` and
 `GEOCODER_CONTACT`), and deploy. There is no `.env` file and no build step.
 
+### Proxmox (LXC + Docker)
+
+`deploy/proxmox-lxc.sh` creates an unprivileged Debian LXC, installs Docker in
+it, and brings the stack up. **Run it on the Proxmox node shell as root:**
+
+```bash
+APP_PASSWORD='something-strong' bash deploy/proxmox-lxc.sh
+```
+
+Overridable: `CTID` `STORAGE` `TEMPLATE_STORAGE` `BRIDGE` `CT_IP` `CT_GW`
+`DISK_GB` `CORES` `RAM_MB` `APP_PORT` `IMAGE` `APP_URL` `GEOCODER_CONTACT`
+`GHCR_USER` `GHCR_TOKEN` `ROLLBACK`.
+
+```bash
+CTID=151 STORAGE=local-zfs CT_IP=192.168.1.60/24 CT_GW=192.168.1.1 APP_PASSWORD='...' bash deploy/proxmox-lxc.sh
+```
+
+Notes:
+
+- It validates storage **before** downloading a ~150 MB template, and names the
+  storages that would actually work — `local-lvm` does not exist on a ZFS-root
+  node.
+- After deploying it asserts `GET /` returns **401**. `/api/health` is public,
+  so a healthy container proves nothing about auth; this catches an
+  `APP_PASSWORD` that failed to arrive intact.
+- `APP_PASSWORD` may not contain a single quote or newline — the script rejects
+  those up front rather than silently truncating the password.
+- If a step fails after the container is created, it prints the `pct stop` /
+  `pct destroy` cleanup. `ROLLBACK=1` destroys it automatically.
+- The app is published on the LXC's IP, so Newt can reach it from any host. If
+  Pangolin runs as Docker on that same LXC, drop the `ports:` block and share a
+  Docker network instead.
+
 ### Behind Pangolin / Newt
 
 The container publishes **no host ports** on purpose. Newt reaches it over the
