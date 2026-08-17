@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money, parseNumber } from "@/lib/parse";
 import { breakEvenAgainstRent, ownershipOverTime } from "@/lib/va/ownership";
+import { formatMonths, payoffWithExtra } from "@/lib/va/payoff";
 
 const num = (v: string, fallback = 0) => parseNumber(v) ?? fallback;
 
@@ -33,6 +34,12 @@ export function OwnershipPanel({
   const [appreciation, setAppreciation] = useState("3");
   const [inflation, setInflation] = useState("3");
   const [rent, setRent] = useState("");
+  const [extra, setExtra] = useState("");
+
+  const payoff = useMemo(
+    () => payoffWithExtra(loanAmount, interestRate, termYears * 12, num(extra)),
+    [loanAmount, interestRate, termYears, extra],
+  );
 
   const input = useMemo(
     () => ({
@@ -127,6 +134,53 @@ export function OwnershipPanel({
           lenders never show you. Tax, insurance and HOA grow at the inflation rate rather than
           staying flat, because holding them flat for thirty years understates lifetime cost badly.
         </p>
+
+        {/* Overpaying is the one lever a buyer fully controls after closing. */}
+        <div className="border-border/60 space-y-2 rounded-md border border-dashed p-3">
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <Label htmlFor="ow-extra">Extra principal each month</Label>
+            <Input
+              id="ow-extra"
+              inputMode="decimal"
+              value={extra}
+              onChange={(e) => setExtra(e.target.value)}
+              placeholder="200"
+            />
+          </div>
+
+          {payoff && payoff.extraMonthly > 0 ? (
+            <div className="space-y-1 text-sm">
+              <p>
+                Paying <span className="font-medium">{money(payoff.extraMonthly)}</span> extra on top
+                of the {money(payoff.basePayment)} P&amp;I clears the loan{" "}
+                <span className="font-medium text-emerald-600 dark:text-emerald-500">
+                  {formatMonths(payoff.monthsSaved)} early
+                </span>{" "}
+                — {Math.floor(payoff.months / 12)} years {payoff.months % 12} months instead of{" "}
+                {termYears}.
+              </p>
+              <p>
+                Interest saved:{" "}
+                <span className="font-medium text-emerald-600 dark:text-emerald-500">
+                  {money(payoff.interestSaved)}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  (you pay {money(payoff.totalInterest)} instead of{" "}
+                  {money(payoff.totalInterest + payoff.interestSaved)})
+                </span>
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Every extra dollar goes straight to principal and removes all the future interest
+                that dollar would have carried — which is why a small overpayment early buys so
+                many months. VA loans never carry a prepayment penalty.
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Enter an amount to see how many years it removes from the loan.
+            </p>
+          )}
+        </div>
 
         {num(rent) > 0 ? (
           <p className="text-sm">

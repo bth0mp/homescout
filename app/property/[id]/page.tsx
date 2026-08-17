@@ -16,6 +16,8 @@ import { buildCompareRow } from "@/lib/compare";
 import { getDb } from "@/lib/db";
 import { propertyColumns, properties, scenarios } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
+import { estimateMonthlyMaintenance } from "@/lib/property-tax";
+import { estimateUtilities } from "@/lib/va/residual-income";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +56,8 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   // Same computation as the board and the compare table — one source of truth
   // for "what does this cost per month".
   const overview = buildCompareRow(p, propertyScenarios[0], lastUsed ?? undefined);
+  const maintenance = estimateMonthlyMaintenance(p.listPrice);
+  const utilities = p.sqft ? estimateUtilities(p.sqft) : null;
 
   const updateThis = updateProperty.bind(null, p.id);
   const deleteThis = deleteProperty.bind(null, p.id);
@@ -117,6 +121,36 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
                   value={overview?.cashToClose ? money(overview.cashToClose) : "—"}
                 />
               </dl>
+              {/* The payment is not the cost. Maintenance and utilities are
+                  never in a mortgage quote, which is why they surprise people. */}
+              {overview?.monthlyPayment && maintenance ? (
+                <div className="border-border/60 space-y-1 rounded-md border border-dashed p-3">
+                  <p className="text-sm font-medium">Not in that payment</p>
+                  <dl className="text-muted-foreground space-y-0.5 text-sm">
+                    <div className="flex justify-between">
+                      <dt>Maintenance reserve (1%/yr)</dt>
+                      <dd className="tabular-nums">{money(maintenance)}/mo</dd>
+                    </div>
+                    {utilities ? (
+                      <div className="flex justify-between">
+                        <dt>Utilities ({p.sqft?.toLocaleString()} sq ft)</dt>
+                        <dd className="tabular-nums">{money(utilities)}/mo</dd>
+                      </div>
+                    ) : null}
+                    <div className="text-foreground flex justify-between border-t pt-1 font-medium">
+                      <dt>Realistic monthly outlay</dt>
+                      <dd className="tabular-nums">
+                        {money(overview.monthlyPayment + maintenance + (utilities ?? 0))}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs">
+                    Maintenance averages out; the year a roof goes you spend several years&rsquo;
+                    worth at once.
+                  </p>
+                </div>
+              ) : null}
+
               <p className="text-muted-foreground text-xs">
                 Open <span className="text-foreground">Financing</span> to change the rate, term,
                 down payment and closing costs behind these numbers.

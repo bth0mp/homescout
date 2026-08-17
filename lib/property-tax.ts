@@ -78,6 +78,20 @@ export function estimateAnnualInsurance(price: number): number | null {
   return Math.round(price * (INSURANCE_RATE_PCT / 100));
 }
 
+/**
+ * Annual maintenance reserve, as a percent of home value.
+ *
+ * The long-standing rule of thumb. Some years you spend nothing; the year the
+ * roof goes you spend five years' worth at once. It is not part of a mortgage
+ * payment, which is exactly why people are surprised by it.
+ */
+export const MAINTENANCE_RATE_PCT = 1;
+
+export function estimateMonthlyMaintenance(price: number): number | null {
+  if (!(price > 0)) return null;
+  return Math.round((price * (MAINTENANCE_RATE_PCT / 100)) / 12);
+}
+
 /** Where a state sits nationally — context for whether a rate is unusual. */
 export function taxRank(state: string): { rank: number; of: number } | null {
   const rate = taxRateForState(state);

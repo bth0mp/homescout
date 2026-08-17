@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { breakEvenAgainstRent, ownershipOverTime } from "@/lib/va/ownership";
-import { estimateAnnualTax, taxRank, taxRateForState } from "@/lib/property-tax";
+import {
+  estimateAnnualTax,
+  estimateMonthlyMaintenance,
+  taxRank,
+  taxRateForState,
+} from "@/lib/property-tax";
 
 const base = {
   loanAmount: 350_000,
@@ -121,6 +126,14 @@ describe("property tax by state", () => {
   it("does not estimate without a price", () => {
     expect(estimateAnnualTax(0, "WA")).toBeNull();
     expect(estimateAnnualTax(-1, "WA")).toBeNull();
+  });
+
+  it("estimates a maintenance reserve at 1% of value per year", () => {
+    // $395,000 house -> $3,950/yr -> $329/mo. Not in any mortgage payment,
+    // which is exactly why it needs showing.
+    expect(estimateMonthlyMaintenance(395_000)).toBe(329);
+    expect(estimateMonthlyMaintenance(0)).toBeNull();
+    expect(estimateMonthlyMaintenance(-1)).toBeNull();
   });
 
   it("ranks New Jersey as the most expensive and Hawaii the cheapest", () => {

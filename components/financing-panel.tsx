@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PropertyRow, Scenario } from "@/lib/db/schema";
 import { money, parseNumber, pct } from "@/lib/parse";
+import { estimateAnnualInsurance, estimateAnnualTax } from "@/lib/property-tax";
 import { calculateLoan } from "@/lib/va/amortize";
 import {
   DISABILITY_RATINGS,
@@ -129,8 +130,16 @@ export function FinancingPanel({
   // persisted. No migration for a UI helper.
   const [rating, setRating] = useState<number | null>(null);
   const [financeFee, setFinanceFee] = useState(seed?.fundingFeeFinanced ?? true);
-  const [tax, setTax] = useState(String(property.propertyTaxAnnual || ""));
-  const [ins, setIns] = useState(String(property.insuranceAnnual || ""));
+  // Seed from the same estimates the board uses. Leaving these blank meant the
+  // over-time projection charged $0 of tax and insurance for thirty years,
+  // understating lifetime cost by six figures while the board showed the
+  // estimated figures — two screens disagreeing about the same house.
+  const [tax, setTax] = useState(
+    String(property.propertyTaxAnnual || estimateAnnualTax(property.listPrice, property.state) || ""),
+  );
+  const [ins, setIns] = useState(
+    String(property.insuranceAnnual || estimateAnnualInsurance(property.listPrice) || ""),
+  );
   const [hoa, setHoa] = useState(String(property.hoaMonthly || ""));
 
   // Residual income inputs
