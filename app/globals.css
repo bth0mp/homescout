@@ -5,6 +5,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Print: the compare table is meant to be handed to someone on paper. */
+@media print {
+  :root { color-scheme: light; }
+  html, body { background: #fff !important; color: #000 !important; }
+  table { border-collapse: collapse; font-size: 10pt; }
+  th, td { border: 1px solid #ccc !important; }
+  /* Never split a property's row across pages. */
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { text-decoration: none !important; color: #000 !important; }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

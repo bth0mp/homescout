@@ -281,7 +281,7 @@ constant. Check them against the source before trusting a number:
 | 3 — VA loan calculator | done |
 | 4 — Closing cost estimator | done |
 | Maps (board + per property) | done |
-| 5 — Area crime lookup | next |
-| 6 — Compare view | pending |
-| 7 — Sharing | pending |
+| 5 — Area crime lookup | done |
+| 6 — Compare view | done |
+| 7 — Sharing | next |
 | Auto-update button | after the build is complete |
