@@ -17,11 +17,17 @@ export function PropertyCard({
   property: p,
   monthly,
   missingCosts = [],
+  estimatedCosts = [],
+  taxAnnual,
+  insuranceAnnual,
 }: {
   property: PropertyRow;
   /** Total monthly payment from this property's scenario, when it has one. */
   monthly?: number | null;
   missingCosts?: string[];
+  estimatedCosts?: string[];
+  taxAnnual?: number | null;
+  insuranceAnnual?: number | null;
 }) {
   const line = [p.city, p.state].filter(Boolean).join(", ");
   const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
@@ -64,16 +70,43 @@ export function PropertyCard({
       <CardContent className="space-y-3">
         {/* The number that decides whether a house is possible, shown without
             making anyone open a tab to find it. */}
-        <div className="bg-muted/50 flex items-baseline justify-between rounded-md px-3 py-2">
-          <span className="text-muted-foreground text-xs">Est. monthly</span>
-          <span className="text-lg font-semibold tabular-nums">
-            {monthly ? money(monthly) : "—"}
-            {monthly && missingCosts.length > 0 ? (
-              <span className="block text-right text-xs font-normal text-amber-600 dark:text-amber-500">
-                no {missingCosts.join(" or ")}
-              </span>
-            ) : null}
-          </span>
+        <div className="bg-muted/50 space-y-1 rounded-md px-3 py-2">
+          <div className="flex items-baseline justify-between">
+            <span className="text-muted-foreground text-xs">Est. monthly</span>
+            <span className="text-lg font-semibold tabular-nums">
+              {monthly ? money(monthly) : "—"}
+            </span>
+          </div>
+
+          {/* Show the parts, so a surprising total is explainable at a glance. */}
+          {monthly ? (
+            <p className="text-muted-foreground flex flex-wrap gap-x-3 text-xs">
+              {taxAnnual ? (
+                <span>
+                  tax {money(taxAnnual / 12)}/mo
+                  {estimatedCosts.includes("property tax") ? "*" : ""}
+                </span>
+              ) : null}
+              {insuranceAnnual ? (
+                <span>
+                  ins {money(insuranceAnnual / 12)}/mo
+                  {estimatedCosts.includes("insurance") ? "*" : ""}
+                </span>
+              ) : null}
+              {p.hoaMonthly ? <span>HOA {money(p.hoaMonthly)}/mo</span> : null}
+            </p>
+          ) : null}
+
+          {monthly && estimatedCosts.length > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              * estimated {estimatedCosts.join(" and ")}
+            </p>
+          ) : null}
+          {monthly && missingCosts.length > 0 ? (
+            <p className="text-xs text-amber-600 dark:text-amber-500">
+              excludes {missingCosts.join(" and ")} — add a state to estimate
+            </p>
+          ) : null}
         </div>
 
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">

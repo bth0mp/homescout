@@ -92,51 +92,67 @@ describe("buildCompareRow", () => {
   });
 });
 
-describe("missing carrying costs", () => {
-  it("flags a property whose tax and insurance are blank", () => {
-    // Otherwise this house shows a LOWER monthly than a fully-documented one
-    // and reads as cheaper when it is only less filled in.
+describe("carrying costs are estimated rather than dropped", () => {
+  it("fills a blank tax and insurance from estimates and says so", () => {
     const bare = buildCompareRow(
       property({ propertyTaxAnnual: 0, insuranceAnnual: 0 }),
       scenario(),
       undefined,
     );
-    expect(bare.missingCosts).toEqual(["property tax", "insurance"]);
+    expect(bare.estimatedCosts).toEqual(["property tax", "insurance"]);
+    expect(bare.missingCosts).toEqual([]);
+    // WA at 0.94% of 350,000, insurance at 0.35%.
+    expect(bare.taxAnnual).toBe(3_290);
+    expect(bare.insuranceAnnual).toBe(1_225);
   });
 
-  it("flags each one independently", () => {
-    expect(
-      buildCompareRow(property({ propertyTaxAnnual: 0 }), scenario(), undefined).missingCosts,
-    ).toEqual(["property tax"]);
-    expect(
-      buildCompareRow(property({ insuranceAnnual: 0 }), scenario(), undefined).missingCosts,
-    ).toEqual(["insurance"]);
+  it("prefers what the user actually entered", () => {
+    const r = buildCompareRow(property({ propertyTaxAnnual: 9_999 }), scenario(), undefined);
+    expect(r.taxAnnual).toBe(9_999);
+    expect(r.estimatedCosts).not.toContain("property tax");
+  });
+
+  it("cannot estimate tax without a state, and says that instead", () => {
+    const r = buildCompareRow(
+      property({ propertyTaxAnnual: 0, insuranceAnnual: 0, state: "" }),
+      scenario(),
+      undefined,
+    );
+    expect(r.missingCosts).toEqual(["property tax"]);
+    // Insurance needs only a price, so it is still estimated.
+    expect(r.estimatedCosts).toEqual(["insurance"]);
+  });
+
+  it("never invents an HOA — most houses genuinely have none", () => {
+    const r = buildCompareRow(property({ hoaMonthly: 0 }), scenario(), undefined);
+    expect(r.missingCosts).not.toContain("HOA");
+    expect(r.estimatedCosts).not.toContain("HOA");
   });
 
   it("says nothing when both are present", () => {
-    expect(buildCompareRow(property(), scenario(), undefined).missingCosts).toEqual([]);
-  });
-
-  it("does not treat a zero HOA as missing — most houses have none", () => {
-    expect(buildCompareRow(property({ hoaMonthly: 0 }), scenario(), undefined).missingCosts).toEqual(
-      [],
-    );
+    const r = buildCompareRow(property(), scenario(), undefined);
+    expect(r.missingCosts).toEqual([]);
+    expect(r.estimatedCosts).toEqual([]);
   });
 
   it("stays quiet when there is no payment to qualify", () => {
-    expect(buildCompareRow(property(), undefined, undefined).missingCosts).toEqual([]);
+    const r = buildCompareRow(property(), undefined, undefined);
+    expect(r.missingCosts).toEqual([]);
+    expect(r.estimatedCosts).toEqual([]);
   });
 
-  it("the bare property really does show a lower monthly — the reason this matters", () => {
-    const full = buildCompareRow(property(), scenario(), undefined);
-    const bare = buildCompareRow(
+  it("closes the gap that made a bare house look cheaper", () => {
+    // The original bug: a pricier house with blank costs showed a LOWER monthly.
+    // With estimates filled in, price order and payment order now agree.
+    const cheaper = buildCompareRow(property({ listPrice: 350_000 }), scenario(), undefined);
+    const dearer = buildCompareRow(
       property({ listPrice: 400_000, propertyTaxAnnual: 0, insuranceAnnual: 0, hoaMonthly: 0 }),
       scenario(),
       undefined,
     );
-    expect(bare.listPrice!).toBeGreaterThan(full.listPrice!);
-    expect(bare.monthlyPayment!).toBeLessThan(full.monthlyPayment!);
-    expect(bare.missingCosts.length).toBeGreaterThan(0);
+    expect(dearer.listPrice!).toBeGreaterThan(cheaper.listPrice!);
+    expect(dearer.monthlyPayment!).toBeGreaterThan(cheaper.monthlyPayment!);
+    expect(dearer.estimatedCosts.length).toBeGreaterThan(0);
   });
 });
 

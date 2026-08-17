@@ -1,6 +1,7 @@
 import { defaultLineItems } from "@/lib/closing/defaults";
 import { estimateClosing } from "@/lib/closing/estimate";
 import type { PropertyRow, Scenario } from "@/lib/db/schema";
+import { estimateAnnualInsurance, estimateAnnualTax } from "@/lib/property-tax";
 import { calculateLoan } from "@/lib/va/amortize";
 import { daysToMonthEnd } from "@/lib/closing/estimate";
 
@@ -19,17 +20,24 @@ export type CompareRow = {
   loanAmount: number | null;
   /** Which scenario the money came from, so the table can say. */
   scenarioName: string | null;
+  /** Tax and insurance actually used in the monthly figure, entered or estimated. */
+  taxAnnual: number;
+  insuranceAnnual: number;
   /** Incidents within the cached radius, when a crime lookup has been run. */
   crimeIncidents: number | null;
   crimeCoverage: string | null;
   hasCoords: boolean;
   /**
-   * Carrying costs left blank on this property. A house with no tax or
-   * insurance entered shows a lower monthly payment than one where those are
-   * filled in — which makes it look cheaper when it is only less documented.
-   * The table must say so rather than let the number speak for itself.
+   * Carrying costs that could not even be estimated — no state for tax, or no
+   * price at all. These really are absent from the monthly figure.
    */
   missingCosts: string[];
+  /**
+   * Carrying costs filled from an estimate because the field was left blank.
+   * The monthly figure includes them, so it is realistic rather than
+   * understated, but the reader must know which numbers are guesses.
+   */
+  estimatedCosts: string[];
 };
 
 /**
@@ -49,6 +57,11 @@ export function buildCompareRow(
   const s = scenario ?? fallback;
   const price = p.listPrice || 0;
 
+  // Fill blank carrying costs from estimates so the headline monthly is
+  // realistic. A house with no tax entered otherwise shows a lower payment than
+  // a fully documented one and reads as cheaper when it is only less filled in.
+  const { taxAnnual, insuranceAnnual, estimatedCosts, missingCosts } = resolveCarryingCosts(p);
+
   let monthlyPayment: number | null = null;
   let cashToClose: number | null = null;
   let loanAmount: number | null = null;
@@ -63,8 +76,8 @@ export function buildCompareRow(
       interestRate: s.interestRate,
       termYears: s.termYears,
       financeFee: s.fundingFeeFinanced,
-      propertyTaxAnnual: p.propertyTaxAnnual,
-      insuranceAnnual: p.insuranceAnnual,
+      propertyTaxAnnual: taxAnnual,
+      insuranceAnnual,
       hoaMonthly: p.hoaMonthly,
     });
 
@@ -79,8 +92,8 @@ export function buildCompareRow(
       items: defaultLineItems({ price, loanAmount: loan.loanAmount, state: p.state }),
       interestRate: s.interestRate,
       prepaidInterestDays: daysToMonthEnd(new Date()),
-      insuranceAnnual: p.insuranceAnnual,
-      propertyTaxAnnual: p.propertyTaxAnnual,
+      insuranceAnnual,
+      propertyTaxAnnual: taxAnnual,
       taxReserveMonths: 3,
       insuranceReserveMonths: 2,
       sellerConcessions: 0,
@@ -105,18 +118,55 @@ export function buildCompareRow(
     scenarioName: s ? (scenario ? s.name : `${s.name} (assumed)`) : null,
     crimeIncidents: crime?.incidents ?? null,
     crimeCoverage: crime?.coverage ?? null,
+    taxAnnual,
+    insuranceAnnual,
     hasCoords: p.lat != null && p.lng != null,
-    missingCosts: monthlyPayment === null ? [] : missingCarryingCosts(p),
+    missingCosts: monthlyPayment === null ? [] : missingCosts,
+    estimatedCosts: monthlyPayment === null ? [] : estimatedCosts,
   };
 }
 
-/** Carrying costs that are absent, and so silently missing from the monthly figure. */
-export function missingCarryingCosts(p: PropertyRow): string[] {
-  const missing: string[] = [];
-  if (!p.propertyTaxAnnual) missing.push("property tax");
-  if (!p.insuranceAnnual) missing.push("insurance");
-  // HOA is genuinely zero for most houses, so its absence is not suspicious.
-  return missing;
+/**
+ * Decide what tax and insurance to use when the fields are blank.
+ *
+ * Prefer what the user entered. Otherwise estimate, so the monthly figure is
+ * realistic rather than understated — but record which numbers are guesses, so
+ * the UI can say so. HOA is never estimated: most houses genuinely have none,
+ * and inventing one would inflate every payment.
+ */
+export function resolveCarryingCosts(p: PropertyRow): {
+  taxAnnual: number;
+  insuranceAnnual: number;
+  estimatedCosts: string[];
+  missingCosts: string[];
+} {
+  const estimatedCosts: string[] = [];
+  const missingCosts: string[] = [];
+
+  let taxAnnual = p.propertyTaxAnnual;
+  if (!taxAnnual) {
+    const est = estimateAnnualTax(p.listPrice, p.state);
+    if (est != null) {
+      taxAnnual = est;
+      estimatedCosts.push("property tax");
+    } else {
+      // No state, or no price — nothing to estimate from.
+      missingCosts.push("property tax");
+    }
+  }
+
+  let insuranceAnnual = p.insuranceAnnual;
+  if (!insuranceAnnual) {
+    const est = estimateAnnualInsurance(p.listPrice);
+    if (est != null) {
+      insuranceAnnual = est;
+      estimatedCosts.push("insurance");
+    } else {
+      missingCosts.push("insurance");
+    }
+  }
+
+  return { taxAnnual, insuranceAnnual, estimatedCosts, missingCosts };
 }
 
 export type SortKey =

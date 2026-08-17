@@ -67,6 +67,9 @@ export default function Home() {
                 property={p}
                 monthly={row?.monthlyPayment}
                 missingCosts={row?.missingCosts ?? []}
+                estimatedCosts={row?.estimatedCosts ?? []}
+                taxAnnual={row?.taxAnnual}
+                insuranceAnnual={row?.insuranceAnnual}
               />
             );
           })}
