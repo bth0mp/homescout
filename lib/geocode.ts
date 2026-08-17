@@ -17,6 +17,13 @@ export type GeocodeResult = {
   provider: string;
 };
 
+/**
+ * Per-provider budget. Two providers, so a fully unreachable network costs at
+ * most twice this before the save completes without coordinates — the property
+ * is still created, it just is not mapped.
+ */
+const PROVIDER_TIMEOUT_MS = 8_000;
+
 function contact() {
   return process.env.GEOCODER_CONTACT || "homescout (unconfigured)";
 }
@@ -117,11 +124,14 @@ export async function geocode(rawAddress: string): Promise<GeocodeResult | null>
     return rest;
   }
 
-  const signal = AbortSignal.timeout(10_000);
   let result: GeocodeResult | null = null;
   for (const provider of [census, nominatim]) {
     try {
-      result = await provider(rawAddress, signal);
+      // A fresh signal per provider. Sharing one meant that if Census used the
+      // whole budget, the signal was already aborted before Nominatim was
+      // called — so the fallback failed instantly precisely when the primary
+      // was slow, which is the only time the fallback matters.
+      result = await provider(rawAddress, AbortSignal.timeout(PROVIDER_TIMEOUT_MS));
       if (result) break;
     } catch {
       // Network error or timeout: fall through to the next provider.
