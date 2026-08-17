@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { ThemeProvider } from "next-themes";
+import { HideOnShare } from "@/components/hide-on-share";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VersionFooter } from "@/components/version-footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="bg-background text-foreground flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <TooltipProvider>
+            <HideOnShare>
             <header className="border-border/60 bg-background/80 sticky top-0 z-40 border-b backdrop-blur print:hidden">
               <nav className="mx-auto flex w-full max-w-6xl items-center gap-1 px-4 py-3">
                 <Link href="/" className="mr-3 font-semibold tracking-tight">
@@ -55,8 +57,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </div>
               </nav>
             </header>
+            </HideOnShare>
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <VersionFooter />
+            <HideOnShare>
+              <VersionFooter />
+            </HideOnShare>
             <Toaster />
           </TooltipProvider>
         </ThemeProvider>

@@ -283,5 +283,5 @@ constant. Check them against the source before trusting a number:
 | Maps (board + per property) | done |
 | 5 — Area crime lookup | done |
 | 6 — Compare view | done |
-| 7 — Sharing | next |
+| 7 — Sharing | done |
 | Auto-update button | after the build is complete |

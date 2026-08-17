@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { properties, scenarios } from "@/lib/db/schema";
+import { properties, scenarios, shareLinks } from "@/lib/db/schema";
+import { expiryFromHours, newToken } from "@/lib/share";
 import { geocode } from "@/lib/geocode";
 import { parseListingUrl } from "@/lib/listing-parse";
 import { titleCase } from "@/lib/parse";
@@ -169,6 +170,37 @@ export async function saveScenario(input: ScenarioInput): Promise<{ id: number }
 export async function deleteScenario(id: number, propertyId: number) {
   getDb().delete(scenarios).where(eq(scenarios.id, id)).run();
   revalidatePath(`/property/${propertyId}`);
+}
+
+export async function createShare(fd: FormData) {
+  const propertyIdRaw = String(fd.get("propertyId") ?? "");
+  const hours = Number(fd.get("expiryHours") ?? 0);
+
+  getDb()
+    .insert(shareLinks)
+    .values({
+      token: newToken(),
+      // Empty string means the whole board.
+      propertyId: propertyIdRaw ? Number(propertyIdRaw) : null,
+      label: String(fd.get("label") ?? "").slice(0, 120),
+      expiresAt: expiryFromHours(Number.isFinite(hours) ? hours : 0),
+      readOnly: true,
+    })
+    .run();
+
+  revalidatePath("/shares");
+}
+
+export async function revokeShare(token: string) {
+  // Revoke, never delete: a deleted row would let the same token be minted
+  // again by chance, and the audit trail of what was shared disappears.
+  getDb()
+    .update(shareLinks)
+    .set({ revokedAt: new Date() })
+    .where(eq(shareLinks.token, token))
+    .run();
+
+  revalidatePath("/shares");
 }
 
 export async function deleteProperty(id: number) {
