@@ -7,7 +7,7 @@ import { lookupListing, type ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PROPERTY_STATUS, type Property } from "@/lib/db/schema";
+import { PROPERTY_STATUS, type PropertyRow } from "@/lib/db/schema";
 
 function Field({
   name,
@@ -40,7 +40,7 @@ export function PropertyForm({
   submitLabel = "Save",
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
-  property?: Property;
+  property?: PropertyRow;
   submitLabel?: string;
 }) {
   const [state, formAction] = useActionState(action, null);

@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Property } from "@/lib/db/schema";
+import type { PropertyRow } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 
-const statusTone: Record<Property["status"], string> = {
+const statusTone: Record<PropertyRow["status"], string> = {
   watching: "secondary",
   touring: "default",
   offer: "default",
   dead: "outline",
 };
 
-export function PropertyCard({ property: p }: { property: Property }) {
+export function PropertyCard({ property: p }: { property: PropertyRow }) {
   const line = [p.city, p.state].filter(Boolean).join(", ");
   const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
 

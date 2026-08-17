@@ -92,6 +92,20 @@ jobs:
           [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/)" = 401 ]
           [ "$(curl -s -o /dev/null -w '%{http_code}' -u any:ci-secret http://127.0.0.1:3000/)" = 200 ]
 
+          echo "--- every page actually renders ---"
+          # A health check only proves the process is alive. This deploy shipped
+          # a page that 500'd while /api/health stayed green, so assert the real
+          # routes render too.
+          for path in / /map /compare /shares /property/new; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -u any:ci-secret "http://127.0.0.1:3000$path")
+            echo "  $path -> $code"
+            if [ "$code" != 200 ]; then
+              echo "::error::$path returned $code"
+              docker logs smoke
+              exit 1
+            fi
+          done
+
           echo "--- static assets served (hydration depends on this) ---"
           css=$(curl -s -u any:ci-secret http://127.0.0.1:3000/ \
                 | grep -o '/_next/static/[^"]*\.css' | head -1)

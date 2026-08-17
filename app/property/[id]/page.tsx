@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getDb } from "@/lib/db";
-import { properties, scenarios } from "@/lib/db/schema";
+import { propertyColumns, properties, scenarios } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
 
-  const p = getDb().select().from(properties).where(eq(properties.id, id)).get();
+  const p = getDb().select(propertyColumns).from(properties).where(eq(properties.id, id)).get();
   if (!p) notFound();
 
   const propertyScenarios = getDb()

@@ -1,6 +1,6 @@
 import { defaultLineItems } from "@/lib/closing/defaults";
 import { estimateClosing } from "@/lib/closing/estimate";
-import type { Property, Scenario } from "@/lib/db/schema";
+import type { PropertyRow, Scenario } from "@/lib/db/schema";
 import { calculateLoan } from "@/lib/va/amortize";
 import { daysToMonthEnd } from "@/lib/closing/estimate";
 
@@ -8,7 +8,7 @@ export type CompareRow = {
   id: number;
   nickname: string;
   location: string;
-  status: Property["status"];
+  status: PropertyRow["status"];
   listPrice: number | null;
   sqft: number | null;
   pricePerSqft: number | null;
@@ -41,7 +41,7 @@ export type CompareRow = {
  * be typed last.
  */
 export function buildCompareRow(
-  p: Property,
+  p: PropertyRow,
   scenario: Scenario | undefined,
   fallback: Scenario | undefined,
   crime?: { incidents: number; coverage: string } | null,
@@ -111,7 +111,7 @@ export function buildCompareRow(
 }
 
 /** Carrying costs that are absent, and so silently missing from the monthly figure. */
-export function missingCarryingCosts(p: Property): string[] {
+export function missingCarryingCosts(p: PropertyRow): string[] {
   const missing: string[] = [];
   if (!p.propertyTaxAnnual) missing.push("property tax");
   if (!p.insuranceAnnual) missing.push("insurance");

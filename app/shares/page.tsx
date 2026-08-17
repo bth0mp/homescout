@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getDb } from "@/lib/db";
-import { properties, shareLinks } from "@/lib/db/schema";
+import { propertyColumns, properties, shareLinks } from "@/lib/db/schema";
 import { EXPIRY_CHOICES, shareState } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export const metadata = { title: "Shares — HomeScout" };
 export default function SharesPage() {
   const db = getDb();
   const links = db.select().from(shareLinks).orderBy(desc(shareLinks.createdAt)).all();
-  const props = db.select().from(properties).orderBy(desc(properties.createdAt)).all();
+  const props = db.select(propertyColumns).from(properties).orderBy(desc(properties.createdAt)).all();
 
   const origin = process.env.APP_URL?.replace(/\/$/, "") ?? "";
 

@@ -5,7 +5,7 @@ import { PropertyMap, type MapPin } from "@/components/property-map";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/lib/db";
-import { properties, shareLinks } from "@/lib/db/schema";
+import { propertyColumns, properties, shareLinks } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 import { isWellFormedToken, rateLimit, shareState } from "@/lib/share";
 
@@ -45,8 +45,8 @@ export default async function SharedView({ params }: { params: Promise<{ token: 
   if (shareState(share) !== "valid") notFound();
 
   const rows = share!.propertyId
-    ? db.select().from(properties).where(eq(properties.id, share!.propertyId)).all()
-    : db.select().from(properties).orderBy(desc(properties.createdAt)).all();
+    ? db.select(propertyColumns).from(properties).where(eq(properties.id, share!.propertyId)).all()
+    : db.select(propertyColumns).from(properties).orderBy(desc(properties.createdAt)).all();
 
   if (rows.length === 0) notFound();
 

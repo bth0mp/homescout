@@ -3,12 +3,12 @@ import { desc } from "drizzle-orm";
 import { PropertyCard } from "@/components/property-card";
 import { buttonVariants } from "@/components/ui/button";
 import { getDb } from "@/lib/db";
-import { properties } from "@/lib/db/schema";
+import { propertyColumns, properties } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  const rows = getDb().select().from(properties).orderBy(desc(properties.createdAt)).all();
+  const rows = getDb().select(propertyColumns).from(properties).orderBy(desc(properties.createdAt)).all();
 
   return (
     <div className="space-y-6">

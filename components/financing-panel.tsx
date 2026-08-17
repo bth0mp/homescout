@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Property, Scenario } from "@/lib/db/schema";
+import type { PropertyRow, Scenario } from "@/lib/db/schema";
 import { money, parseNumber, pct } from "@/lib/parse";
 import { calculateLoan } from "@/lib/va/amortize";
 import {
@@ -103,7 +103,7 @@ export function FinancingPanel({
   scenarios,
   lastUsed,
 }: {
-  property: Property;
+  property: PropertyRow;
   scenarios: Scenario[];
   /** Most recent scenario from any property, used to seed a first one here. */
   lastUsed?: Scenario | null;

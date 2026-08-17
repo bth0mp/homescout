@@ -14,6 +14,42 @@ import { MAX_PHOTO_BYTES } from "@/lib/image";
  * from your clipboard — and storing a copy means the picture survives the
  * listing being taken down when the house sells.
  */
+const MAX_DIMENSION = 1600;
+
+/**
+ * Shrink an oversized image in the browser before uploading.
+ * Falls back to the original on any failure — a photo that will not decode here
+ * is better sent as-is and rejected by server validation with a real message.
+ */
+async function downscale(file: File): Promise<File> {
+  // Small enough already; leave it alone and keep its original format.
+  if (file.size < 900_000) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, MAX_DIMENSION / longest);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/jpeg", 0.85),
+    );
+    if (!blob || blob.size >= file.size) return file;
+
+    return new File([blob], "photo.jpg", { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 export function PhotoPicker({
   propertyId,
   hasPhoto,
@@ -29,26 +65,49 @@ export function PhotoPicker({
   const zoneRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function upload(file: File) {
+  function upload(original: File) {
     setError(null);
-    if (file.size > MAX_PHOTO_BYTES) {
-      setError(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB; the limit is 5MB.`);
-      return;
-    }
-    const fd = new FormData();
-    fd.set("photo", file);
     start(async () => {
-      const res = await savePhoto(propertyId, fd);
-      if (!res.ok) setError(res.error);
-      else setStamp(Date.now()); // bust the immutable cache
+      // Phone photos are routinely 5-10MB and a listing screenshot is far
+      // bigger than it needs to be. Downscaling here keeps uploads well under
+      // any limit and keeps the SQLite file small enough that the one-file
+      // backup stays practical.
+      const file = await downscale(original);
+
+      if (file.size > MAX_PHOTO_BYTES) {
+        setError(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB; the limit is 5MB.`);
+        return;
+      }
+
+      const fd = new FormData();
+      fd.set("photo", file);
+      try {
+        const res = await savePhoto(propertyId, fd);
+        if (!res.ok) setError(res.error);
+        else setStamp(Date.now()); // bust the immutable cache
+      } catch {
+        // Never let a failed upload take the page down with it.
+        setError("Upload failed. Try a smaller image, or use Choose file.");
+      }
     });
   }
 
-  // Paste anywhere inside the drop zone, and also when it holds focus.
+  // Listen on the document, not on the drop zone.
+  //
+  // A paste event only fires on the focused element, so a listener bound to the
+  // zone required clicking it first — which nobody does, and which made Ctrl+V
+  // look broken. Bound here it works the moment the page is open. A paste while
+  // a text field is focused is left alone so pasting an address still works.
   useEffect(() => {
-    const el = zoneRef.current;
-    if (!el) return;
     const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (typing) return;
+
       const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
       const file = item?.getAsFile();
       if (file) {
@@ -56,9 +115,9 @@ export function PhotoPicker({
         upload(file);
       }
     };
-    el.addEventListener("paste", onPaste);
-    return () => el.removeEventListener("paste", onPaste);
-    // upload is stable enough for this; propertyId is the only real dependency.
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+    // upload closes over propertyId only.
   }, [propertyId]);
 
   const src = `/api/photo/${propertyId}?v=${stamp || (hasPhoto ? 1 : 0)}`;
@@ -89,7 +148,7 @@ export function PhotoPicker({
         ) : (
           <div className="text-muted-foreground space-y-1 text-center text-sm">
             <ImagePlus aria-hidden className="mx-auto size-6" />
-            <p>Paste an image here (Ctrl+V), or drop one.</p>
+            <p>Press Ctrl+V to paste an image, or drop one here.</p>
             <p className="text-xs">
               Copy the photo from the listing in your browser, then paste. Up to 5MB.
             </p>

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { properties, scenarios, shareLinks } from "@/lib/db/schema";
+import { propertyColumns, properties, scenarios, shareLinks } from "@/lib/db/schema";
 import { expiryFromHours, newToken } from "@/lib/share";
 import { geocode } from "@/lib/geocode";
 import { MAX_PHOTO_BYTES, validatePhoto } from "@/lib/image";
@@ -113,7 +113,7 @@ export async function updateProperty(id: number, _prev: ActionState, fd: FormDat
   const parsed = propertyFromForm(fd);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
-  const current = getDb().select().from(properties).where(eq(properties.id, id)).get();
+  const current = getDb().select(propertyColumns).from(properties).where(eq(properties.id, id)).get();
   if (!current) return { error: "Property not found" };
 
   // Only re-geocode when the address actually changed; the cache makes this cheap anyway.

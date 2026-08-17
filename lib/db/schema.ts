@@ -101,7 +101,45 @@ export const crimeCache = sqliteTable("crime_cache", {
     .default(sql`(unixepoch() * 1000)`),
 });
 
+/**
+ * Every property column EXCEPT the photo blob.
+ *
+ * Use this for every read that is not the photo route itself. Two reasons:
+ * the blob is a Node Buffer, which React cannot serialise across the
+ * server/client boundary — passing a full row to a client component throws at
+ * render time — and selecting it drags up to 5MB per property into memory on
+ * pages that only ever needed to know whether a photo exists. photoType
+ * answers that in a few bytes.
+ */
+export const propertyColumns = {
+  id: properties.id,
+  nickname: properties.nickname,
+  street: properties.street,
+  city: properties.city,
+  state: properties.state,
+  zip: properties.zip,
+  lat: properties.lat,
+  lng: properties.lng,
+  fipsState: properties.fipsState,
+  fipsCounty: properties.fipsCounty,
+  fipsTract: properties.fipsTract,
+  listPrice: properties.listPrice,
+  propertyTaxAnnual: properties.propertyTaxAnnual,
+  insuranceAnnual: properties.insuranceAnnual,
+  hoaMonthly: properties.hoaMonthly,
+  beds: properties.beds,
+  baths: properties.baths,
+  sqft: properties.sqft,
+  photoType: properties.photoType,
+  notes: properties.notes,
+  notesPrivate: properties.notesPrivate,
+  status: properties.status,
+  createdAt: properties.createdAt,
+} as const;
+
 export type Property = typeof properties.$inferSelect;
+/** A property row without the photo blob — safe to pass to client components. */
+export type PropertyRow = Omit<Property, "photo">;
 export type NewProperty = typeof properties.$inferInsert;
 export type Scenario = typeof scenarios.$inferSelect;
 export type NewScenario = typeof scenarios.$inferInsert;

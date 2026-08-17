@@ -1,7 +1,7 @@
 import { desc } from "drizzle-orm";
 import { CompareTable } from "@/components/compare-table";
 import { getDb } from "@/lib/db";
-import { crimeCache, properties, scenarios } from "@/lib/db/schema";
+import { propertyColumns, crimeCache, properties, scenarios } from "@/lib/db/schema";
 import { buildCompareRow } from "@/lib/compare";
 import { COVERAGE_LABEL, type Coverage } from "@/lib/crime/types";
 
@@ -10,7 +10,7 @@ export const metadata = { title: "Compare — HomeScout" };
 
 export default function ComparePage() {
   const db = getDb();
-  const rows = db.select().from(properties).orderBy(desc(properties.createdAt)).all();
+  const rows = db.select(propertyColumns).from(properties).orderBy(desc(properties.createdAt)).all();
   const allScenarios = db.select().from(scenarios).orderBy(desc(scenarios.createdAt)).all();
   const cached = db.select().from(crimeCache).all();
 

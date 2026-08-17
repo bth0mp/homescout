@@ -4,14 +4,14 @@ import { PropertyMap, type MapPin } from "@/components/property-map";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDb } from "@/lib/db";
-import { properties } from "@/lib/db/schema";
+import { propertyColumns, properties } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Map — HomeScout" };
 
 export default function MapPage() {
-  const rows = getDb().select().from(properties).orderBy(desc(properties.createdAt)).all();
+  const rows = getDb().select(propertyColumns).from(properties).orderBy(desc(properties.createdAt)).all();
 
   const mapped = rows.filter((p) => p.lat != null && p.lng != null);
   const unmapped = rows.length - mapped.length;
