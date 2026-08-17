@@ -30,7 +30,7 @@ export default function MapPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Map</h1>
+        <h1 className="font-display text-[2rem] leading-none font-semibold">Map</h1>
         <p className="text-muted-foreground text-sm">
           {pins.length} of {rows.length} propert{rows.length === 1 ? "y" : "ies"} pinned
           {unmapped > 0 ? ` — ${unmapped} without a geocoded address` : ""}.

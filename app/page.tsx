@@ -33,12 +33,16 @@ export default function Home() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Properties</h1>
-          <p className="text-muted-foreground text-sm">
-            {rows.length} saved
-            {cheapest?.monthlyPayment
-              ? ` · lowest monthly ${money(cheapest.monthlyPayment)} (${cheapest.nickname})`
-              : ""}
+          <h1 className="font-display text-[2rem] leading-none font-semibold">Properties</h1>
+          <p className="text-muted-foreground mt-1.5 text-sm">
+            <span className="numeric">{rows.length}</span> saved
+            {cheapest?.monthlyPayment ? (
+              <>
+                {" · lowest monthly "}
+                <span className="numeric text-foreground">{money(cheapest.monthlyPayment)}</span>
+                {` (${cheapest.nickname})`}
+              </>
+            ) : null}
           </p>
         </div>
         <Link href="/property/new" className={buttonVariants()}>
@@ -59,12 +63,13 @@ export default function Home() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {rows.map((p) => {
+          {rows.map((p, i) => {
             const row = priced.find((r) => r.id === p.id);
             return (
               <PropertyCard
                 key={p.id}
                 property={p}
+                index={i}
                 monthly={row?.monthlyPayment}
                 missingCosts={row?.missingCosts ?? []}
                 estimatedCosts={row?.estimatedCosts ?? []}

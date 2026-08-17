@@ -23,7 +23,7 @@ export default function SharesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Share links</h1>
+        <h1 className="font-display text-[2rem] leading-none font-semibold">Share links</h1>
         <p className="text-muted-foreground text-sm">
           Read-only links anyone can open without signing in. Notes marked private are never
           included.

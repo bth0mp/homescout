@@ -141,3 +141,131 @@
     @apply font-sans;
   }
 }
+/* ═══════════════════════════════════════════════════════════════════════════
+   HomeScout design system
+   ───────────────────────────────────────────────────────────────────────────
+   Direction: precision instrument, not fintech brochure.
+
+   This tool's character is honesty under pressure — asterisks on estimates,
+   amber warnings, a "net position" that stays negative for years. The surface
+   should read like a technical dossier on a house: hairline rules, tabular
+   numerals, a warm charcoal ground rather than clinical blue-black, because
+   buying a house is not a trading terminal.
+
+   Warm neutrals carry the structure; a cold cyan carries the interaction. That
+   tension is the whole point — houses are warm, money is not.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme inline {
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --color-estimate: var(--estimate);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+}
+
+:root {
+  /* Light: warm paper, not white. */
+  --background: oklch(0.982 0.004 85);
+  --foreground: oklch(0.21 0.012 75);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.012 75);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.012 75);
+  --primary: oklch(0.52 0.098 205);
+  --primary-foreground: oklch(0.99 0.003 200);
+  --secondary: oklch(0.955 0.006 85);
+  --secondary-foreground: oklch(0.26 0.012 75);
+  --muted: oklch(0.955 0.006 85);
+  --muted-foreground: oklch(0.505 0.012 78);
+  --accent: oklch(0.94 0.012 195);
+  --accent-foreground: oklch(0.26 0.03 205);
+  --destructive: oklch(0.545 0.19 25);
+  --border: oklch(0.895 0.006 82);
+  --input: oklch(0.895 0.006 82);
+  --ring: oklch(0.52 0.098 205);
+
+  --estimate: oklch(0.58 0.13 68);
+  --gain: oklch(0.52 0.12 155);
+  --loss: oklch(0.53 0.18 25);
+
+  /* Tighter than shadcn's default. Instruments have corners. */
+  --radius: 0.4rem;
+}
+
+.dark {
+  /* Warm charcoal. Pure blue-black reads clinical for a home. */
+  --background: oklch(0.148 0.006 75);
+  --foreground: oklch(0.945 0.006 85);
+  --card: oklch(0.187 0.007 75);
+  --card-foreground: oklch(0.945 0.006 85);
+  --popover: oklch(0.198 0.008 75);
+  --popover-foreground: oklch(0.945 0.006 85);
+  --primary: oklch(0.78 0.115 197);
+  --primary-foreground: oklch(0.16 0.03 200);
+  --secondary: oklch(0.245 0.008 75);
+  --secondary-foreground: oklch(0.93 0.006 85);
+  --muted: oklch(0.235 0.008 75);
+  --muted-foreground: oklch(0.665 0.012 82);
+  --accent: oklch(0.28 0.025 197);
+  --accent-foreground: oklch(0.9 0.05 197);
+  --destructive: oklch(0.68 0.18 24);
+  --border: oklch(0.278 0.008 75);
+  --input: oklch(0.288 0.008 75);
+  --ring: oklch(0.78 0.115 197);
+
+  --estimate: oklch(0.79 0.135 76);
+  --gain: oklch(0.76 0.145 158);
+  --loss: oklch(0.7 0.175 23);
+}
+
+/* Blueprint grid. Barely visible — it should register as texture, not pattern. */
+body {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--foreground) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--foreground) 4%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-attachment: fixed;
+}
+
+/* Every figure is a number you compare against another number. */
+.tabular-nums,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Display face: Fraunces with its optical and "wonk" axes pushed slightly.
+   Gives headings the look of an engraved deed rather than a dashboard. */
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 0, "WONK" 1, "opsz" 40;
+  letter-spacing: -0.015em;
+}
+
+/* Money and measurements. Mono everywhere so columns align by default. */
+.numeric {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Hairline rule used as structure, the way a drawing uses one. */
+.rule {
+  border-color: color-mix(in oklch, var(--border) 70%, transparent);
+}
+
+/* Staggered entrance for the board. One orchestrated load beats scattered
+   micro-interactions. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise {
+  animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none; }
+}

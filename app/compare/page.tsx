@@ -48,7 +48,7 @@ export default function ComparePage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Compare</h1>
+        <h1 className="font-display text-[2rem] leading-none font-semibold">Compare</h1>
         <p className="text-muted-foreground text-sm">
           {rows.length} propert{rows.length === 1 ? "y" : "ies"} side by side.
         </p>

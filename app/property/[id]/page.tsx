@@ -24,8 +24,8 @@ export const dynamic = "force-dynamic";
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="text-lg font-medium">{value}</dd>
+      <dt className="text-muted-foreground text-[0.625rem] tracking-[0.07em] uppercase">{label}</dt>
+      <dd className="numeric mt-1 text-lg font-medium">{value}</dd>
     </div>
   );
 }
@@ -71,7 +71,7 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
           ← All properties
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{p.nickname}</h1>
+          <h1 className="font-display text-[2rem] leading-none font-semibold">{p.nickname}</h1>
           <Badge variant="secondary">{p.status}</Badge>
         </div>
         <p className="text-muted-foreground text-sm">{addressLine || "No address yet"}</p>
@@ -91,24 +91,36 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
         <TabsContent value="overview" className="space-y-4 pt-4">
           <Card>
             <CardContent className="space-y-4">
-              {/* The headline number. Everything else on this page is context
-                  for it, so it should not be one of five equal-weight stats. */}
-              <div className="bg-muted/50 flex flex-wrap items-baseline justify-between gap-2 rounded-md px-4 py-3">
-                <div>
-                  <p className="text-muted-foreground text-xs">Estimated monthly payment</p>
-                  {overview?.scenarioName ? (
-                    <p className="text-muted-foreground text-xs">{overview.scenarioName}</p>
-                  ) : null}
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-semibold tabular-nums">
-                    {overview?.monthlyPayment ? money(overview.monthlyPayment) : "—"}
-                  </p>
-                  {overview && overview.missingCosts.length > 0 ? (
-                    <p className="text-xs text-amber-600 dark:text-amber-500">
-                      excludes {overview.missingCosts.join(" and ")}
+              {/* The hero. Everything else on this page is context for it. */}
+              <div className="border-border/70 from-primary/[0.07] relative overflow-hidden rounded-lg border bg-gradient-to-br to-transparent px-5 py-4">
+                <div
+                  aria-hidden
+                  className="bg-primary/60 absolute inset-y-0 left-0 w-px"
+                />
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-muted-foreground text-[0.6875rem] tracking-[0.09em] uppercase">
+                      Estimated monthly payment
                     </p>
-                  ) : null}
+                    {overview?.scenarioName ? (
+                      <p className="text-muted-foreground mt-1 text-xs">{overview.scenarioName}</p>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <p className="numeric text-[2.75rem] leading-none font-semibold">
+                      {overview?.monthlyPayment ? money(overview.monthlyPayment) : "—"}
+                    </p>
+                    {overview && overview.estimatedCosts.length > 0 ? (
+                      <p className="text-estimate mt-1 text-xs">
+                        includes estimated {overview.estimatedCosts.join(" and ")}
+                      </p>
+                    ) : null}
+                    {overview && overview.missingCosts.length > 0 ? (
+                      <p className="text-estimate mt-1 text-xs">
+                        excludes {overview.missingCosts.join(" and ")}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
