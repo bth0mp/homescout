@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { buildCompareRow } from "@/lib/compare";
 import { getDb } from "@/lib/db";
 import { propertyColumns, properties, scenarios } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
@@ -50,6 +51,10 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
     .limit(1)
     .get();
 
+  // Same computation as the board and the compare table — one source of truth
+  // for "what does this cost per month".
+  const overview = buildCompareRow(p, propertyScenarios[0], lastUsed ?? undefined);
+
   const updateThis = updateProperty.bind(null, p.id);
   const deleteThis = deleteProperty.bind(null, p.id);
   const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
@@ -81,11 +86,41 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
 
         <TabsContent value="overview" className="space-y-4 pt-4">
           <Card>
-            <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Stat label="List price" value={p.listPrice ? money(p.listPrice) : "—"} />
-              <Stat label="$/sq ft" value={perSqft ? money(perSqft) : "—"} />
-              <Stat label="Tax / yr" value={p.propertyTaxAnnual ? money(p.propertyTaxAnnual) : "—"} />
-              <Stat label="HOA / mo" value={p.hoaMonthly ? money(p.hoaMonthly) : "—"} />
+            <CardContent className="space-y-4">
+              {/* The headline number. Everything else on this page is context
+                  for it, so it should not be one of five equal-weight stats. */}
+              <div className="bg-muted/50 flex flex-wrap items-baseline justify-between gap-2 rounded-md px-4 py-3">
+                <div>
+                  <p className="text-muted-foreground text-xs">Estimated monthly payment</p>
+                  {overview?.scenarioName ? (
+                    <p className="text-muted-foreground text-xs">{overview.scenarioName}</p>
+                  ) : null}
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-semibold tabular-nums">
+                    {overview?.monthlyPayment ? money(overview.monthlyPayment) : "—"}
+                  </p>
+                  {overview && overview.missingCosts.length > 0 ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      excludes {overview.missingCosts.join(" and ")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Stat label="List price" value={p.listPrice ? money(p.listPrice) : "—"} />
+                <Stat label="$/sq ft" value={perSqft ? money(perSqft) : "—"} />
+                <Stat label="Tax / yr" value={p.propertyTaxAnnual ? money(p.propertyTaxAnnual) : "—"} />
+                <Stat
+                  label="Cash to close"
+                  value={overview?.cashToClose ? money(overview.cashToClose) : "—"}
+                />
+              </dl>
+              <p className="text-muted-foreground text-xs">
+                Open <span className="text-foreground">Financing</span> to change the rate, term,
+                down payment and closing costs behind these numbers.
+              </p>
             </CardContent>
           </Card>
           <Card>

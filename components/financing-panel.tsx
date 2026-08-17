@@ -5,6 +5,7 @@ import { Info } from "lucide-react";
 import { deleteScenario, saveScenario } from "@/app/actions";
 import { AmortizationTable } from "@/components/amortization-table";
 import { ClosingCosts } from "@/components/closing-costs";
+import { OwnershipPanel } from "@/components/ownership-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -427,6 +428,21 @@ export function FinancingPanel({
             />
           </CardContent>
         </Card>
+      </div>
+
+      {/* ---------- cost over time ---------- */}
+      <div className="lg:col-span-2">
+        <OwnershipPanel
+          loanAmount={loan.loanAmount}
+          interestRate={num(rate, 0)}
+          termYears={Math.max(1, num(term, 30))}
+          price={priceN}
+          downPayment={downPayment}
+          cashToClose={downPayment + loan.feeDueAtClosing}
+          propertyTaxAnnual={num(tax)}
+          insuranceAnnual={num(ins)}
+          hoaMonthly={num(hoa)}
+        />
       </div>
 
       {/* ---------- closing costs ---------- */}

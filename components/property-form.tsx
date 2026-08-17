@@ -8,6 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PROPERTY_STATUS, type PropertyRow } from "@/lib/db/schema";
+import { money, parseNumber } from "@/lib/parse";
+import {
+  HIGH_INSURANCE_STATES,
+  INSURANCE_RATE_PCT,
+  STATE_CODES,
+  STATE_NAMES,
+  estimateAnnualInsurance,
+  estimateAnnualTax,
+  taxRateForState,
+} from "@/lib/property-tax";
 
 function Field({
   name,
@@ -47,6 +57,12 @@ export function PropertyForm({
   const p = property;
 
   const formRef = useRef<HTMLFormElement>(null);
+  const [stateCode, setStateCode] = useState(p?.state?.toUpperCase() ?? "");
+  const [price, setPrice] = useState(String(p?.listPrice || ""));
+  const [, setTaxTouched] = useState(Boolean(p?.propertyTaxAnnual));
+  const taxRate = taxRateForState(stateCode);
+  const taxEstimate = estimateAnnualTax(parseNumber(price) ?? 0, stateCode);
+  const insEstimate = estimateAnnualInsurance(parseNumber(price) ?? 0);
   const [linkPending, startLink] = useTransition();
   const [linkNote, setLinkNote] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(
     null,
@@ -69,8 +85,10 @@ export function PropertyForm({
       };
       set("street", res.street);
       set("city", res.city);
-      set("state", res.state);
       set("zip", res.zip);
+      // The state <select> is controlled, so drive it through state rather than
+      // writing .value — otherwise the tax estimate below would not update.
+      if (res.state) setStateCode(res.state.toUpperCase());
       const nick = form.elements.namedItem("nickname");
       if (nick instanceof HTMLInputElement && !nick.value) nick.value = res.street;
 
@@ -157,7 +175,23 @@ export function PropertyForm({
         <Field name="street" label="Street" defaultValue={p?.street} placeholder="123 Main St" />
         <div className="grid gap-4 sm:grid-cols-3">
           <Field name="city" label="City" defaultValue={p?.city} />
-          <Field name="state" label="State" defaultValue={p?.state} placeholder="VA" />
+          <div className="grid gap-1.5">
+            <Label htmlFor="f-state">State</Label>
+            <select
+              id="f-state"
+              name="state"
+              value={stateCode}
+              onChange={(e) => setStateCode(e.target.value)}
+              className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+            >
+              <option value="">Select…</option>
+              {STATE_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {c} — {STATE_NAMES[c]}
+                </option>
+              ))}
+            </select>
+          </div>
           <Field name="zip" label="ZIP" defaultValue={p?.zip} inputMode="numeric" />
         </div>
         <p className="text-muted-foreground text-xs">
@@ -169,28 +203,78 @@ export function PropertyForm({
       <fieldset className="grid gap-4">
         <legend className="mb-2 text-sm font-medium">Money</legend>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            name="listPrice"
-            label="List price"
-            inputMode="decimal"
-            defaultValue={p?.listPrice || ""}
-            placeholder="350,000"
-            hint="Commas and $ are fine."
-          />
-          <Field
-            name="propertyTaxAnnual"
-            label="Property tax (annual)"
-            inputMode="decimal"
-            defaultValue={p?.propertyTaxAnnual || ""}
-            placeholder="3,200"
-          />
-          <Field
-            name="insuranceAnnual"
-            label="Homeowners insurance (annual)"
-            inputMode="decimal"
-            defaultValue={p?.insuranceAnnual || ""}
-            placeholder="1,400"
-          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="f-listPrice">List price</Label>
+            <Input
+              id="f-listPrice"
+              name="listPrice"
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="350,000"
+            />
+            <p className="text-muted-foreground text-xs">Commas and $ are fine.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="f-propertyTaxAnnual">Property tax (annual)</Label>
+            <Input
+              id="f-propertyTaxAnnual"
+              name="propertyTaxAnnual"
+              inputMode="decimal"
+              defaultValue={p?.propertyTaxAnnual || ""}
+              placeholder={taxEstimate ? String(taxEstimate) : "3,200"}
+              onChange={(e) => setTaxTouched(e.target.value !== "")}
+            />
+            {taxEstimate ? (
+              <p className="text-muted-foreground text-xs">
+                {stateCode} averages {taxRate}% of value — about{" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-2"
+                  onClick={() => {
+                    const el = document.getElementById("f-propertyTaxAnnual");
+                    if (el instanceof HTMLInputElement) {
+                      el.value = String(taxEstimate);
+                      setTaxTouched(true);
+                    }
+                  }}
+                >
+                  {money(taxEstimate)}/yr
+                </button>
+                . Statewide median only — counties vary 2-3x, so use the listing
+                or assessor figure when you have it.
+              </p>
+            ) : null}
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="f-insuranceAnnual">Homeowners insurance (annual)</Label>
+            <Input
+              id="f-insuranceAnnual"
+              name="insuranceAnnual"
+              inputMode="decimal"
+              defaultValue={p?.insuranceAnnual || ""}
+              placeholder={insEstimate ? String(insEstimate) : "1,400"}
+            />
+            {insEstimate ? (
+              <p className="text-muted-foreground text-xs">
+                Rough estimate{" "}
+                <button
+                  type="button"
+                  className="text-foreground underline underline-offset-2"
+                  onClick={() => {
+                    const el = document.getElementById("f-insuranceAnnual");
+                    if (el instanceof HTMLInputElement) el.value = String(insEstimate);
+                  }}
+                >
+                  {money(insEstimate)}/yr
+                </button>{" "}
+                ({INSURANCE_RATE_PCT}% of price).{" "}
+                {HIGH_INSURANCE_STATES.has(stateCode)
+                  ? `${stateCode} is a high-premium state — expect well above this, and get a real quote.`
+                  : "Real premiums depend on roof age, claims and wind exposure, not price."}
+              </p>
+            ) : null}
+          </div>
           <Field
             name="hoaMonthly"
             label="HOA (monthly)"

@@ -11,7 +11,16 @@ const statusTone: Record<PropertyRow["status"], string> = {
   dead: "outline",
 };
 
-export function PropertyCard({ property: p }: { property: PropertyRow }) {
+export function PropertyCard({
+  property: p,
+  monthly,
+  missingCosts = [],
+}: {
+  property: PropertyRow;
+  /** Total monthly payment from this property's scenario, when it has one. */
+  monthly?: number | null;
+  missingCosts?: string[];
+}) {
   const line = [p.city, p.state].filter(Boolean).join(", ");
   const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
 
@@ -50,7 +59,22 @@ export function PropertyCard({ property: p }: { property: PropertyRow }) {
           {line || "No address yet"}
         </p>
       </CardHeader>
-      <CardContent className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+      <CardContent className="space-y-3">
+        {/* The number that decides whether a house is possible, shown without
+            making anyone open a tab to find it. */}
+        <div className="bg-muted/50 flex items-baseline justify-between rounded-md px-3 py-2">
+          <span className="text-muted-foreground text-xs">Est. monthly</span>
+          <span className="text-lg font-semibold tabular-nums">
+            {monthly ? money(monthly) : "—"}
+            {monthly && missingCosts.length > 0 ? (
+              <span className="block text-right text-xs font-normal text-amber-600 dark:text-amber-500">
+                no {missingCosts.join(" or ")}
+              </span>
+            ) : null}
+          </span>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
         <div>
           <dt className="text-muted-foreground text-xs">List</dt>
           <dd className="font-medium">{p.listPrice ? money(p.listPrice) : "—"}</dd>
@@ -69,6 +93,7 @@ export function PropertyCard({ property: p }: { property: PropertyRow }) {
           <dt className="text-muted-foreground text-xs">$/sq ft</dt>
           <dd className="font-medium">{perSqft ? money(perSqft) : "—"}</dd>
         </div>
+        </dl>
       </CardContent>
     </Card>
   );

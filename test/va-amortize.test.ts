@@ -81,6 +81,36 @@ describe("calculateLoan", () => {
   });
 });
 
+describe("golden test against a real lender", () => {
+  it("matches Veterans United's published VA calculator", () => {
+    // Captured from veteransunited.com/education/tools/mortgage-calculator:
+    //   $395,000 · 6.3% · 30yr · VA disabled (fee exempt) · first use ·
+    //   fee not paid upfront · HOA $0
+    //   -> P&I $2,445, taxes $395/mo, insurance $115/mo, total $2,955
+    const r = calculateLoan({
+      price: 395_000,
+      downPayment: 0,
+      firstUse: true,
+      exempt: true,
+      interestRate: 6.3,
+      termYears: 30,
+      financeFee: true,
+      // Their assumed rates, backed out of the figures above: tax 1.20% of
+      // price, insurance 0.35%.
+      propertyTaxAnnual: 4_740,
+      insuranceAnnual: 1_380,
+      hoaMonthly: 0,
+    });
+
+    expect(r.fundingFeeAmount).toBe(0);
+    expect(r.loanAmount).toBe(395_000);
+    expect(Math.round(r.monthlyPI)).toBe(2_445);
+    expect(Math.round(r.monthlyTax)).toBe(395);
+    expect(Math.round(r.monthlyInsurance)).toBe(115);
+    expect(Math.round(r.monthlyTotal)).toBe(2_955);
+  });
+});
+
 describe("amortizationSchedule", () => {
   it("runs the full term and ends at exactly zero", () => {
     const rows = amortizationSchedule(357_525, 6.5, 360);
