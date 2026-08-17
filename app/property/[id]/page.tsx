@@ -6,6 +6,7 @@ import { CrimePanel } from "@/components/crime-panel";
 import { FinancingPanel } from "@/components/financing-panel";
 import { OpenInRow } from "@/components/open-in-row";
 import { PropertyForm } from "@/components/property-form";
+import { PhotoPicker } from "@/components/photo-picker";
 import { PropertyMap } from "@/components/property-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,14 @@ export default async function PropertyDetail({ params }: { params: Promise<{ id:
               <Stat label="$/sq ft" value={perSqft ? money(perSqft) : "—"} />
               <Stat label="Tax / yr" value={p.propertyTaxAnnual ? money(p.propertyTaxAnnual) : "—"} />
               <Stat label="HOA / mo" value={p.hoaMonthly ? money(p.hoaMonthly) : "—"} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Photo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PhotoPicker propertyId={p.id} hasPhoto={Boolean(p.photoType)} nickname={p.nickname} />
             </CardContent>
           </Card>
           <Card>

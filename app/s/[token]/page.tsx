@@ -80,7 +80,18 @@ export default async function SharedView({ params }: { params: Promise<{ token: 
         {rows.map((p) => {
           const perSqft = p.sqft && p.listPrice ? p.listPrice / p.sqft : null;
           return (
-            <Card key={p.id}>
+            <Card key={p.id} className="overflow-hidden">
+              {p.photoType ? (
+                // eslint-disable-next-line @next/next/no-img-element -- raw bytes,
+                // served through the share-scoped route so no auth is needed.
+                <img
+                  src={`/s/${token}/photo/${p.id}`}
+                  alt=""
+                  aria-hidden
+                  loading="lazy"
+                  className="h-48 w-full object-cover"
+                />
+              ) : null}
               <CardHeader className="gap-1">
                 <div className="flex items-start justify-between gap-2">
                   {/* No link: there is nothing to navigate to from a shared view. */}

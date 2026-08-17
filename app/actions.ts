@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { properties, scenarios, shareLinks } from "@/lib/db/schema";
 import { expiryFromHours, newToken } from "@/lib/share";
 import { geocode } from "@/lib/geocode";
+import { MAX_PHOTO_BYTES, validatePhoto } from "@/lib/image";
 import { parseListingUrl } from "@/lib/listing-parse";
 import { titleCase } from "@/lib/parse";
 import { propertyFromForm } from "@/lib/zod";
@@ -169,6 +170,44 @@ export async function saveScenario(input: ScenarioInput): Promise<{ id: number }
 
 export async function deleteScenario(id: number, propertyId: number) {
   getDb().delete(scenarios).where(eq(scenarios.id, id)).run();
+  revalidatePath(`/property/${propertyId}`);
+}
+
+export async function savePhoto(
+  propertyId: number,
+  fd: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const file = fd.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No image supplied." };
+  }
+  // Cheap rejection before reading the whole thing into memory.
+  if (file.size > MAX_PHOTO_BYTES) {
+    return { ok: false, error: `Image is too large; the limit is ${MAX_PHOTO_BYTES / 1024 / 1024}MB.` };
+  }
+
+  const checked = validatePhoto(Buffer.from(await file.arrayBuffer()));
+  if (!checked.ok) return checked;
+
+  getDb()
+    .update(properties)
+    .set({ photo: checked.bytes, photoType: checked.type })
+    .where(eq(properties.id, propertyId))
+    .run();
+
+  revalidatePath("/");
+  revalidatePath(`/property/${propertyId}`);
+  return { ok: true };
+}
+
+export async function removePhoto(propertyId: number) {
+  getDb()
+    .update(properties)
+    .set({ photo: null, photoType: null })
+    .where(eq(properties.id, propertyId))
+    .run();
+
+  revalidatePath("/");
   revalidatePath(`/property/${propertyId}`);
 }
 

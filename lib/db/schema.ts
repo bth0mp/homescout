@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const PROPERTY_STATUS = ["watching", "touring", "offer", "dead"] as const;
 export type PropertyStatus = (typeof PROPERTY_STATUS)[number];
@@ -24,6 +24,11 @@ export const properties = sqliteTable("properties", {
   beds: real("beds"),
   baths: real("baths"),
   sqft: integer("sqft"),
+  // Stored in the database rather than on disk so the single-file backup story
+  // stays true, and stored at all rather than hotlinked because listing images
+  // disappear the moment a house sells.
+  photo: blob("photo", { mode: "buffer" }),
+  photoType: text("photo_type"),
   notes: text("notes").notNull().default(""),
   // Notes marked private are stripped from shared views.
   notesPrivate: integer("notes_private", { mode: "boolean" }).notNull().default(false),

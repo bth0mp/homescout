@@ -8,6 +8,13 @@
       "when": 1786888530770,
       "tag": "0000_gigantic_dust",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786950501245,
+      "tag": "0001_parallel_scourge",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,17 @@ export function PropertyCard({ property: p }: { property: Property }) {
     // `relative` belongs HERE, not on the link: the stretched overlay is
     // positioned against its nearest positioned ancestor, so putting it on the
     // link made only the nickname text clickable.
-    <Card className="focus-within:ring-ring relative transition-colors hover:border-foreground/20 focus-within:ring-2">
+    <Card className="focus-within:ring-ring relative overflow-hidden transition-colors hover:border-foreground/20 focus-within:ring-2">
+      {p.photoType ? (
+        // eslint-disable-next-line @next/next/no-img-element -- raw bytes from our own route.
+        <img
+          src={`/api/photo/${p.id}`}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          className="h-40 w-full object-cover"
+        />
+      ) : null}
       <CardHeader className="gap-1">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">
