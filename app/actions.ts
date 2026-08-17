@@ -141,7 +141,14 @@ export type ScenarioInput = {
   fundingFeeFinanced: boolean;
   fundingFeeExempt: boolean;
   vaFirstUse: boolean;
+  /** Property-level fields edited on the Financing tab; written through. */
+  listPrice?: number;
+  propertyTaxAnnual?: number;
+  insuranceAnnual?: number;
+  hoaMonthly?: number;
 };
+
+const money = z.number().min(0).max(1_000_000_000);
 
 const scenarioSchema = z.object({
   id: z.number().int().positive().optional(),
@@ -153,17 +160,38 @@ const scenarioSchema = z.object({
   fundingFeeFinanced: z.boolean(),
   fundingFeeExempt: z.boolean(),
   vaFirstUse: z.boolean(),
+  // These four are edited on the Financing tab but belong to the PROPERTY, not
+  // the scenario. They were previously dropped on the floor: the button said
+  // "Saved." and the price vanished on reload. They are written through here.
+  listPrice: money.optional(),
+  propertyTaxAnnual: money.optional(),
+  insuranceAnnual: money.optional(),
+  hoaMonthly: money.optional(),
 });
 
 export async function saveScenario(input: ScenarioInput): Promise<{ id: number } | { error: string }> {
   const parsed = scenarioSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid scenario" };
-  const { id, ...values } = parsed.data;
+  const { id, listPrice, propertyTaxAnnual, insuranceAnnual, hoaMonthly, ...values } = parsed.data;
+
+  const db = getDb();
 
   const row = id
-    ? getDb().update(scenarios).set(values).where(eq(scenarios.id, id)).returning({ id: scenarios.id }).get()
-    : getDb().insert(scenarios).values(values).returning({ id: scenarios.id }).get();
+    ? db.update(scenarios).set(values).where(eq(scenarios.id, id)).returning({ id: scenarios.id }).get()
+    : db.insert(scenarios).values(values).returning({ id: scenarios.id }).get();
 
+  const propertyEdits = {
+    ...(listPrice !== undefined ? { listPrice } : {}),
+    ...(propertyTaxAnnual !== undefined ? { propertyTaxAnnual } : {}),
+    ...(insuranceAnnual !== undefined ? { insuranceAnnual } : {}),
+    ...(hoaMonthly !== undefined ? { hoaMonthly } : {}),
+  };
+  if (Object.keys(propertyEdits).length > 0) {
+    db.update(properties).set(propertyEdits).where(eq(properties.id, values.propertyId)).run();
+  }
+
+  revalidatePath("/");
+  revalidatePath("/compare");
   revalidatePath(`/property/${values.propertyId}`);
   return { id: row.id };
 }

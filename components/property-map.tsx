@@ -19,6 +19,7 @@ const STATUS_COLOR: Record<string, string> = {
   watching: "#0ea5e9",
   touring: "#8b5cf6",
   offer: "#10b981",
+  pending: "#f59e0b",
   dead: "#71717a",
 };
 

@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PropertyRow } from "@/lib/db/schema";
 import { money } from "@/lib/parse";
 
+// Exhaustive by type: adding a status without a tone is a compile error.
 const statusTone: Record<PropertyRow["status"], string> = {
   watching: "secondary",
   touring: "default",
   offer: "default",
+  pending: "secondary",
   dead: "outline",
 };
 

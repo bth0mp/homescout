@@ -1,7 +1,23 @@
 import { sql } from "drizzle-orm";
 import { blob, index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const PROPERTY_STATUS = ["watching", "touring", "offer", "dead"] as const;
+/**
+ * Pipeline order, and the order they appear in the picker.
+ *
+ * "pending" covers under-contract either way — your offer accepted, or the
+ * listing gone to someone else. Deliberately one status rather than two: in a
+ * fast market the useful distinction is "can I still act on this", and which
+ * side the contract is on is a note, not a state machine.
+ */
+export const PROPERTY_STATUS = ["watching", "touring", "offer", "pending", "dead"] as const;
+
+export const STATUS_HINT: Record<(typeof PROPERTY_STATUS)[number], string> = {
+  watching: "On the shortlist, no visit yet",
+  touring: "Seen it, or a viewing booked",
+  offer: "You have an offer in",
+  pending: "Under contract — yours or someone else's. Keep it: they fall through.",
+  dead: "Gone, sold, or ruled out",
+};
 export type PropertyStatus = (typeof PROPERTY_STATUS)[number];
 
 export const properties = sqliteTable("properties", {

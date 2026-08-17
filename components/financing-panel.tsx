@@ -192,13 +192,20 @@ export function FinancingPanel({
         fundingFeeFinanced: financeFee,
         fundingFeeExempt: exempt,
         vaFirstUse: firstUse,
+        // These belong to the property, not the scenario. Sending them means
+        // the price typed here actually persists instead of being discarded
+        // behind a "Saved." message.
+        listPrice: priceN,
+        propertyTaxAnnual: num(tax),
+        insuranceAnnual: num(ins),
+        hoaMonthly: num(hoa),
       });
       if ("error" in res) {
         setSaved(res.error);
         return;
       }
       setActiveId(res.id);
-      setSaved("Saved.");
+      setSaved("Saved — price, tax, insurance and HOA written to the property.");
     });
   }
 

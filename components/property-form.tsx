@@ -7,7 +7,7 @@ import { lookupListing, type ActionState } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PROPERTY_STATUS, type PropertyRow } from "@/lib/db/schema";
+import { PROPERTY_STATUS, STATUS_HINT, type PropertyRow } from "@/lib/db/schema";
 import { money, parseNumber } from "@/lib/parse";
 import {
   HIGH_INSURANCE_STATES,
@@ -63,6 +63,7 @@ export function PropertyForm({
   const taxRate = taxRateForState(stateCode);
   const taxEstimate = estimateAnnualTax(parseNumber(price) ?? 0, stateCode);
   const insEstimate = estimateAnnualInsurance(parseNumber(price) ?? 0);
+  const [status, setStatus] = useState<(typeof PROPERTY_STATUS)[number]>(p?.status ?? "watching");
   const [linkPending, startLink] = useTransition();
   const [linkNote, setLinkNote] = useState<{ tone: "ok" | "warn" | "err"; text: string } | null>(
     null,
@@ -298,6 +299,7 @@ export function PropertyForm({
             id="f-status"
             name="status"
             defaultValue={p?.status ?? "watching"}
+            onChange={(e) => setStatus(e.target.value as (typeof PROPERTY_STATUS)[number])}
             className="border-input bg-background ring-offset-background focus-visible:ring-ring h-9 rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:outline-none"
           >
             {PROPERTY_STATUS.map((s) => (
@@ -306,6 +308,7 @@ export function PropertyForm({
               </option>
             ))}
           </select>
+          <p className="text-muted-foreground text-xs">{STATUS_HINT[status]}</p>
         </div>
       </fieldset>
 
